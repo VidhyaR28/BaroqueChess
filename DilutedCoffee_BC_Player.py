@@ -24,7 +24,7 @@ WHITE_FREEZER     = 15
 """
 
 global colourtrack
-global movesList = []
+global movesList
 global captureList
 
 
@@ -84,6 +84,15 @@ def makeMove(currentState, currentRemark, timelimit=10):
 
 
 def generateStates(currentState, piece, r, c, time):
+    """
+    Generates a list of possible states
+    :param currentState: BC_state_etc -> class BC_state
+    :param piece: The actual piece, numeric value (Pincer, Imitator, etc)
+    :param r: row
+    :param c: column
+    :param time:
+    :return:
+    """
     if piece == 2 or piece == 3:
         plusMoves(currentState, r, c, piece)
     elif piece == 4 or piece == 5:
@@ -99,8 +108,42 @@ def generateStates(currentState, piece, r, c, time):
     elif piece == 14 or piece == 15:
         allDirMoves(currentState, r, c, 'f')
 
-def plusMoves(currentState, r, c, item):
+def plusMoves(currentState, r, c, item, direction):
+    """
+    Generates states in North, East, West, South.
+    :param currentState:
+    :param r:
+    :param c:
+    :param item:
+    :param direction:
+    :return:
+    """
     # east moves
+
+    movedirection = [[1, 0], [-1, 0], [0, 1], [0, -1]] # moves in North, South, East, West
+    # temp_c = c
+    # temp_r = r
+    for k in movedirection:
+        temp_c = c
+        temp_r = r
+        if temp_c == 7 and temp_r == 7:
+            temp_c += k[1]
+            temp_r += k[0]
+            # temp_c, temp_r belongsto [0, 7]
+            # while (temp_c >= 0 and temp_c <= 7 and  temp_r >= 0 and temp_r <= 7 and currentState.board[temp_r][temp_c] == 0):
+            while (temp_c in range(0, 7) and temp_r in range(0, 7) and currentState.board[temp_r][temp_c] == 0):
+                newState = BC.BC_state(currentState)
+                newState.board[r][temp_c] = item
+                newState.board[r][c] = 0
+                movesList.append(newState)
+                temp_c += k[1]
+                temp_r += k[0]
+
+
+
+
+
+
     temp_c = c
     temp_r = r
     if temp_c != 7:
@@ -134,6 +177,10 @@ def prepare(player2Nickname, playWhite):
     :return:
     """
     global colourtrack
+    global captureList
+    global movesList
+    captureList = []
+    movesList = []
 
     if (playWhite == True):
         # keep track of white/black
