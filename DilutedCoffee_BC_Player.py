@@ -30,6 +30,9 @@ global colourtrack
 global movesList
 global captureList
 
+CODE_TO_INIT = {0:'-',2:'p',3:'P',4:'c',5:'C',6:'l',7:'L',8:'i',9:'I',
+  10:'w',11:'W',12:'k',13:'K',14:'f',15:'F'}
+
 
 def parameterized_minimax(currentState, alphaBeta=False, ply=3, \
                           useBasicStaticEval=True, useZobristHashing=False):
@@ -78,11 +81,10 @@ def makeMove(currentState, currentRemark, timelimit=10):
 
     newState = BC.BC_state(currentState.board)
     # print("Enters makeMove")
-    for i in range(8):
-        for j in range(8):
-            if newState.board[i][j] % 2 == colourtrack:
+    # SHIFT TO THE GENERATE STATES FUNCTION
+
                 # print("Enters the iterating forloop of makeMove ")
-                generateStates(newState, newState.board[i][j], i, j, timelimit)
+    generateStates(newState, timelimit)
     # kt: newstate should be temp, parse through temp, and then make change?
 
     # Fix up whose turn it will be.
@@ -101,31 +103,80 @@ def makeMove(currentState, currentRemark, timelimit=10):
     return [[move, newState], newRemark]
 
 
-def generateStates(currentState, piece, r, c, time):
+def generateStates(currentState, time):
     """
     Generates a list of possible states
     :param currentState: BC_state_etc -> class BC_state
-    :param piece: The actual piece, numeric value (Pincer, Imitator, etc)
-    :param r: row
-    :param c: column
     :param time:
     :return:
     """
-    print("Piece", piece)
-    if piece == 2 or piece == 3:
-        straightMoves(currentState, r, c, piece)
-    elif piece == 4 or piece == 5:
-        allDirMoves(currentState, r, c, 'c')
-    elif piece == 6 or piece == 7:
-        allDirMoves(currentState, r, c, 'l') #leaper moves are different
-    elif piece == 8 or piece == 9:
-        allDirMoves(currentState, r, c, 'i')
-    elif piece == 10 or piece == 11:
-        allDirMoves(currentState, r, c, 'w')
-    elif piece == 12 or piece == 13:
-        oneStepMoves(currentState, r, c, 'k')
-    elif piece == 14 or piece == 15:
-        allDirMoves(currentState, r, c, 'f')
+    if currentState.whose_move == 'WHITE':
+        track = 1
+    else: track = 0
+
+    for i in range(8):
+        for j in range(8):
+            if currentState.board[i][j] % 2 == track:
+                piece = currentState.board[i][j]
+                if piece == 2 or piece == 3:
+                    pincerMoves(currentState, i, j, piece, track)
+                    straightMoves(currentState, i, j, piece.lower())
+                elif piece == 4 or piece == 5:
+                    allDirMoves(currentState, i, j, piece.lower())
+                elif piece == 6 or piece == 7:
+                    allDirMoves(currentState, i, j, piece.lower()) #leaper moves are different
+                elif piece == 8 or piece == 9:
+                    allDirMoves(currentState, i, j, piece.lower())
+                elif piece == 10 or piece == 11:
+                    allDirMoves(currentState, i, j, piece.lower())
+                elif piece == 12 or piece == 13:
+                    oneStepMoves(currentState, i, j, piece.lower())
+                elif piece == 14 or piece == 15:
+                    allDirMoves(currentState, i, j, piece.lower())
+
+def pincerMoves(currentState, r, c, piece, track):
+    movedirection = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+
+    for k in movedirection:
+        final = move(currentState, r, c, k, piece)
+        pincerCapture(final)
+
+
+def pincerCapture(currentState, final, track):
+    r = final[0]
+    c = final[1]
+
+
+    possiblities = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 0], [-1, 0], [0, 1], [0, -1]]
+    for k in possiblities:
+        r = final[0]
+        c = final[1]
+        r += k[0]
+        c += k[1]
+
+        try:
+            if currentState.board[r][c]%2 != track:
+                if currentState.board[r+k[0]][c+k[1]]%2 == track:
+                    captureList.append(currentState, currentState.board[r][c]) # capture list should be tuples
+        except:
+            # do nothing
+
+
+
+def move(currentState, r, c, k, item):
+    # item in the form of number
+    temp_c = c + k[1]
+    temp_r = r + k[0]
+    while (temp_c in range(0, 7) and temp_r in range(0, 7) and currentState.board[temp_r][temp_c] == 0):
+        newState = BC.BC_state(currentState.board)
+        newState.board[r][temp_c] = item
+        newState.board[r][c] = 0
+        movesList.append(newState)
+        # print("plusMoves r: ", temp_r, ", Temp c:", temp_c)
+        temp_c += k[1]
+        temp_r += k[0]
+
+    return [temp_r - k[0], temp_c - k[1]]
 
 def straightMoves(currentState, r, c, item):
     """
