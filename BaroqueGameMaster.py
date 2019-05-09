@@ -38,6 +38,8 @@ FINISHED = False
 def runGame():
     # Set up for the match, and report on its details: 
     currentState = BC.BC_state()
+    print(currentState)
+
     print('**** Baroque Chess Gamemaster v'+VERSION+' *****')
     print('The Gamemaster says, "Players, introduce yourselves."')
     print(' (Playing WHITE:) '+player1.introduce())

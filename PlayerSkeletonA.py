@@ -4,6 +4,8 @@ The beginnings of an agent that might someday play Baroque Chess.
 '''
 
 import BC_state_etc as BC
+import sys
+
 
 def parameterized_minimax(currentState, alphaBeta=False, ply=3,\
     useBasicStaticEval=True, useZobristHashing=False):
@@ -44,7 +46,10 @@ def prepare(player2Nickname):
     the opponent agent, in case your agent can use it in some of
     the dialog responses.  Other than that, this function can be
     used for initializing data structures, if needed.'''
-    pass
+
+    print(sys.argv[1])
+
+    return
 
 def basicStaticEval(state):
     '''Use the simple method for state evaluation described in the spec.

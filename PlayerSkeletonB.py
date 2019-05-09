@@ -5,6 +5,7 @@ Use PlayerSkeletonA, which has more of the function stubs in place.
 '''
 
 import BC_state_etc as BC
+import sys
 
 def parameterized_minimax(currentState, alphaBeta=False, ply=3,\
     useBasicStaticEval=True, useZobristHashing=False):
@@ -42,4 +43,6 @@ def prepare(player2Nickname):
     the opponent agent, in case your agent can use it in some of
     the dialog responses.  Other than that, this function can be
     used for initializing data structures, if needed.'''
-    pass
+    print("Default check2")
+    print(sys.argv[1])
+    return
