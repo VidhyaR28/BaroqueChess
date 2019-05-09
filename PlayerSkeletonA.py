@@ -47,7 +47,7 @@ def prepare(player2Nickname):
     the dialog responses.  Other than that, this function can be
     used for initializing data structures, if needed.'''
 
-    print(sys.argv[1])
+    print("Hi I'm not too prepared. ")
 
     return
 

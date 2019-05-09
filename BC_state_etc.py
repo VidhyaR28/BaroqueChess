@@ -35,6 +35,7 @@ We are following these rules:
   An imitator can imitate at most one piece during a move.
  
 '''
+print("12")
 BLACK = 0
 WHITE = 1
 NORTH = 0; SOUTH = 1; WEST = 2; EAST = 3; NW = 4; NE = 5; SW = 6; SE = 7
@@ -71,15 +72,15 @@ WHITE_FREEZER     = 15
 def who(piece): return piece % 2  # BLACK's pieces are even; WHITE's are odd.
 
 def parse(bs): # bs is board string
-  '''Translate a board string into the list of lists representation.'''
-  b = [[0,0,0,0,0,0,0,0] for r in range(8)]
-  rs9 = bs.split("\n")
-  rs8 = rs9[1:] # eliminate the empty first item.
-  for iy in range(8):
-    rss = rs8[iy].split(' ');
-    for jx in range(8):
-      b[iy][jx] = INIT_TO_CODE[rss[jx]]
-  return b
+    '''Translate a board string into the list of lists representation.'''
+    b = [[0,0,0,0,0,0,0,0] for r in range(8)]
+    rs9 = bs.split("\n")
+    rs8 = rs9[1:] # eliminate the empty first item.
+    for iy in range(8):
+        rss = rs8[iy].split(' ');
+        for jx in range(8):
+            b[iy][jx] = INIT_TO_CODE[rss[jx]]
+    return b
 
 INITIAL = parse('''
 c l i w k i l f
@@ -109,23 +110,27 @@ class BC_state:
         s += "\n"
         return s
 
+
     def __eq__(self, other):
-      if not (type(other)==type(self)): return False
-      if self.whose_move != other.whose_move: return False
-      try:
-        b1 = self.board
-        b2 = other.board
-        for i in range(8):
-          for j in range(8):
-            if b1[i][j] != b2[i][j]: return False
-        return True
-      except Exception as e:
-        return False
+
+        if not (type(other)==type(self)): return False
+        if self.whose_move != other.whose_move: return False
+        try:
+            b1 = self.board
+            b2 = other.board
+            for i in range(8):
+                for j in range(8):
+                    if b1[i][j] != b2[i][j]: return False
+            return True
+        except Exception as e:
+            return False
+
+
       
 def test_starting_board():
-  init_state = BC_state(INITIAL, WHITE)
-  print(init_state)
+    init_state = BC_state(INITIAL, WHITE)
+    print(init_state)
 
 
 if __name__ == "__main__":
-  test_starting_board()
+    test_starting_board()

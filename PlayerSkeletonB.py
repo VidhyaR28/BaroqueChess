@@ -43,6 +43,5 @@ def prepare(player2Nickname):
     the opponent agent, in case your agent can use it in some of
     the dialog responses.  Other than that, this function can be
     used for initializing data structures, if needed.'''
-    print("Default check2")
-    print(sys.argv[1])
+    print("Hi I'm cheetie and I'm gonna win")
     return
