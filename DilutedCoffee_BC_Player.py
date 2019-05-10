@@ -5,7 +5,7 @@
 Diluted Coffee is a Baroque Chess Player made by Vidhya Rajendran and Krishna Teja
 
 """
-
+# from BC_state_etc import *
 import BC_state_etc as BC
 
 """
@@ -356,9 +356,10 @@ def staticEval(state):
 
 # def test_starting_board():
 #     print("1")
-#     import BC_state_etc as BC
+#     # import BC_state_etc as BC
 #     print(2)
-#     init_state = BC.BC_state(INITIAL, WHITE)
+#     # init_state = BC.BC_state(INITIAL, WHITE)
+#     init_state = BC_state(INITIAL, WHITE)
 #     print(init_state)
 #
 #
