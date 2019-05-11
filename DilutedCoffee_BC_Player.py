@@ -7,6 +7,7 @@ Diluted Coffee is a Baroque Chess Player made by Vidhya Rajendran and Krishna Te
 """
 # from BC_state_etc import *
 import BC_state_etc as BC
+import heapq
 
 """
 BLACK_PINCER      = 2
@@ -41,39 +42,98 @@ def parameterized_minimax(currentState, alphaBeta=False, ply=3, \
     capabilities here.
     :param currentState:
     :param alphaBeta:
-    :param ply:
+    :param ply: Number of ply's
     :param useBasicStaticEval:
     :param useZobristHashing:
     :return:
     """
     """
     Pseudocode: 
-    
+    fun minimax(n: node): int =
+       if leaf(n) then return evaluate(n)
+       if n is a max node
+          v := L
+          for each child of n
+             v' := minimax (child)
+             if v' > v, v:= v'
+          return v
+       if n is a min node
+          v := W
+          for each child of n
+             v' := minimax (child)
+             if v' < v, v:= v'
+          return v
+
     Procedure minimax(board, whoseMove, plyLeft):
         if plyLeft == 0: return staticValue(board)
-        if whoseMove == ‘Max’: provisional = -100000 else: provisional = 100000
+        if whoseMove == ‘Max’: 
+            provisional = -100000 
+        else: 
+            provisional = 100000
         for s in successors(board, whoseMove):
-            newVal = minimax(s, other(whoseMove), plyLeft-1) if (whoseMove == ‘Max’ and newVal > provisional
-        or (whoseMove == ‘Min’ and newVal < provisional): 
-            provisional = newVal
+            newVal = minimax(s, other(whoseMove), plyLeft-1) 
+            if (whoseMove == ‘Max’ and newVal > provisional
+                or (whoseMove == ‘Min’ and newVal < provisional): 
+                    provisional = newVal
         return provisional
     """
+    priorityqueue = []
+    if alphaBeta == False:
+        free = 0
+    else:
+        free = 1 # CHANGE THIS AFTER IMPLEMENTING ALPHA-BETA
 
+    if ply == 0:
+        returnVal = {'CURRENT_STATE_STATIC_VAL': basicStaticEval(currentState), 'N_STATES_EXPANDED': 1,
+                     'N_STATIC_EVALS': 1, 'N_CUTOFFS': free}
+        return basicStaticEval(currentState)
+    if currentState.whose_move == 1:
+        provisional = -100000
+    else:
+        provisional = 100000
+
+    # for s in generate states
+    global movesList
+
+    for s in successors(currentState): # CAN'T USE MOVESLIST, HAVE TO GENERATE KIDS.
+        heapq.heappush(priorityqueue, s)
+
+    for s in priorityqueue:
+        newVal = parameterized_minimax(s, alphaBeta, ply - 1, useBasicStaticEval, useZobristHashing)
+        if ((currentState.whose_move == 1 and newVal > provisional)
+                or (currentState.whose_move == 0 and newVal < provisional)):
+            provisional = newVal
+            provisional.update('N_STATES_EXPANDED', len(s) + 1)
+            provisional.update('N_STATIV_EVALS', len(s) + 1) # when will this not be same in minimax?
+    """
+    The return value of parameterized_minimax should be a dict object with the following attributes:
+        'CURRENT_STATE_STATIC_VAL': The static eval value of the current_state as determined by your minimax search
+        'N_STATES_EXPANDED': The number of states expanded as part of your minimax search
+        'N_STATIC_EVALS': The number of static evals performed as part of your minimax search
+        'N_CUTOFFS': The number of cutoffs that occurred during the minimax search (0 if alpha-beta was not enabled)
 
     """
-    When useBasicStaticEval is true, you'll evaluate leaf nodes of your search tree with your own implementation of 
-    the following function: White pincers are worth 1, the White king is worth 100, and all other White pieces are 
-    worth 2. Black pieces have the same values as their white counterparts, but negative. When useBasicStaticEval is 
-    False, you should use your own, more discriminating function. The value of the function is the sum of the values of 
-    the pieces on the board in the given state.
+
+    return provisional
+
+def successors(currentState):
     """
+    Takes in a list of successors and returns them
+    :param currentState:
+    :return:
+    """
+    return []
 
-
-
-    pass
 
 
 def makeMove(currentState, currentRemark, timelimit=10):
+    """
+
+    :param currentState:
+    :param currentRemark:
+    :param timelimit:
+    :return:
+    """
     # Compute the new state for a move.
     # You should implement an anytime algorithm based on IDDFS.
 
@@ -103,7 +163,7 @@ def makeMove(currentState, currentRemark, timelimit=10):
     return [[move, newState], newRemark]
 
 
-def generateStates(currentState, time):
+def generateStates(currentState, time = 1):
     """
     Generates a list of possible states
     :param currentState: BC_state_etc -> class BC_state
@@ -160,10 +220,21 @@ def pincerCapture(currentState, final, track):
                     captureList.append(currentState, currentState.board[r][c]) # capture list should be tuples
         except:
             # do nothing
+            k = 0
+
 
 
 
 def move(currentState, r, c, k, item):
+    """
+
+    :param currentState: Just the current state.
+    :param r: row
+    :param c: column
+    :param k: individual "possibilities"
+    :param item: Piece
+    :return: (row, column) of the dead end
+    """
     # item in the form of number
     temp_c = c + k[1]
     temp_r = r + k[0]
@@ -172,7 +243,7 @@ def move(currentState, r, c, k, item):
         newState.board[r][temp_c] = item
         newState.board[r][c] = 0
         movesList.append(newState)
-        # print("plusMoves r: ", temp_r, ", Temp c:", temp_c)
+        # print("/"move/" r: ", temp_r, ", Temp c:", temp_c)
         temp_c += k[1]
         temp_r += k[0]
 
