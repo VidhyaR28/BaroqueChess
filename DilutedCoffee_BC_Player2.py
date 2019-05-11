@@ -481,6 +481,109 @@ def staticEval(state):
     :param state:
     :return:
     """
-    pass
+
+    # send in functions to everything, take a value as return and then sum it up.
+
+    # assign a couple of values for each state.
+
+    # loop through entire board. if piece == specific piece, send to a function which evaluates significance
+
+    evalboard = state.board
+    returnval = 0
+
+    for i in range(0, 8):
+        for j in range(0, 8):
+            if state.board[i][j] == 'p':
+                # mobility check
+                # King Safety Check
+                #
+                returnval += pincerMobility(state.board, (i, j))
+
+    return returnval
+
+def pincerMobility(state, k):
+    board = state.board
 
 
+    movedirection =  [[1, 0], [-1, 0], [0, 1], [0, -1]]
+    count = 0
+    for s in movedirection:
+        if board[k[0] + s[0]][k[1] + s[1]] == 0:
+            count += 1
+    return count*5
+
+
+def pincerKill(state, k):
+    board = state.board
+
+    # go north, south, east, west. Hit a block. Check if it's the other colour. If yes, go one step ahead and see if we
+    # have a piece there. If yes, more points.
+    count = 0
+    movedirection = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+    if state.whoseturn == WHITE:
+        opponentPieces = [2, 4, 6, 8, 10, 12, 14]
+    else:
+        opponentPieces = [3, 5, 7, 9, 11, 13, 15]
+
+    for s in movedirection:
+
+        t = k
+
+        # checks in a direction. Loops through blank spaces, checks if it's an opponent. If true, checks if our
+        # our piece exists right after.
+
+        #checking for blank spaces
+        while(t[0] in range(0, 8) and t[1] in range(0, 8) and board[t[0]][t[1]] == 0):
+            t[0] += s[0]
+            t[1] += s[1]
+
+        # avoiding an index out of bounds exception
+            if t[0] == 8:
+                t[0] -= 1
+            elif t[0] == -1:
+                t[0] += 1
+            elif t[1] == 8:
+                t[1] -= 1
+            elif t[1] == -1:
+                t[1] += 1
+
+            # this can't be generalised, so split into 4
+            # check if the other piece is opponent, if yes jump 1 step and check if its our piece
+            if s[0] == 1 and s[1] == 0:
+                if board[t[0]][t[1]] in opponentPieces and t[0] < 7:
+                    t[0] += 1
+                    if board[t[0]][t[1]] not in opponentPieces and board[t[0]][t[1]] != 0:
+                        count += 1
+            if s[0] == -1 and s[1] == 0:
+                if board[t[0]][t[1]] in opponentPieces and t[0] > 0:
+                    t[0] -= 1
+                    if board[t[0]][t[1]] not in opponentPieces and board[t[0]][t[1]] != 0:
+                        count += 1
+            if s[0] == 0 and s[1] == 1:
+                if board[t[0]][t[1]] in opponentPieces and t[1] < 7:
+                    t[0] += 1
+                    if board[t[0]][t[1]] not in opponentPieces and board[t[0]][t[1]] != 0:
+                        count += 1
+            if s[0] == 0 and s[1] == -1:
+                if board[t[0]][t[1]] in opponentPieces and t[1] > 0:
+                    t[0] -= 1
+                    if board[t[0]][t[1]] not in opponentPieces and board[t[0]][t[1]] != 0:
+                        count += 1
+
+
+        # if s[0] == 1 and s[1] == 0:
+        #     t = 0
+        #     while k[0] + s[0] + t <= 7 and board[k[0] + s[0] + t][k[1]] == 0:
+        #         t += 1
+        #
+        #     # avoiding an index out of bounds exception
+        #     if k[0] + s[0] + t == 8:
+        #         t -= 1
+        #
+        #     if board[k[0] + s[0] + t] in opponentPieces and k[0] + s[0] + t < 7:
+        #         t+= 1
+        #         if board[k[1] + s[1] + t] not in opponentPieces and board[k[0] + s[0] + t][k[1]] != 0:
+        #             count += 1
+
+
+    return count # count times some factor
