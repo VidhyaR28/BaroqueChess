@@ -116,50 +116,221 @@ def generateStates(currentState, time):
 
     for i in range(8):
         for j in range(8):
+            # IMPORTANT: test whether your pieces are frozen. If so, skip the rest from here
             if currentState.board[i][j] % 2 == track:
                 piece = currentState.board[i][j]
-                if piece == 2 or piece == 3:
+                if piece == 2 or piece == 3: #Pincer - Done
                     pincerMoves(currentState, i, j, piece, track)
-                    straightMoves(currentState, i, j, piece.lower())
-                elif piece == 4 or piece == 5:
+                elif piece == 4 or piece == 5: #Coordinator - Done
+                    coordinatorMoves(currentState, i, j, piece, track)
+                elif piece == 6 or piece == 7: #Leaper - Done
+                    leaperMoves(currentState, i, j, piece, track)
+                elif piece == 8 or piece == 9: #Imitator
                     allDirMoves(currentState, i, j, piece.lower())
-                elif piece == 6 or piece == 7:
-                    allDirMoves(currentState, i, j, piece.lower()) #leaper moves are different
-                elif piece == 8 or piece == 9:
-                    allDirMoves(currentState, i, j, piece.lower())
-                elif piece == 10 or piece == 11:
-                    allDirMoves(currentState, i, j, piece.lower())
-                elif piece == 12 or piece == 13:
-                    oneStepMoves(currentState, i, j, piece.lower())
-                elif piece == 14 or piece == 15:
-                    allDirMoves(currentState, i, j, piece.lower())
+                elif piece == 10 or piece == 11: #Withdrawer - Done
+                    withdrawerMoves(currentState, i, j, piece, track)
+                elif piece == 12 or piece == 13: #King - Done
+                    kingMoves(currentState, i, j, piece, track)
+                elif piece == 14 or piece == 15: #Freezer - Done
+                    freezerMoves(currentState, i, j, piece)
 
 def pincerMoves(currentState, r, c, piece, track):
     movedirection = [[1, 0], [-1, 0], [0, 1], [0, -1]]
 
     for k in movedirection:
         final = move(currentState, r, c, k, piece)
-        pincerCapture(final)
+        if pincerCapture(currentState, r, c, final, track, piece):
+           #delete the last state in the moves list because that is a duplicate
 
 
-def pincerCapture(currentState, final, track):
-    r = final[0]
-    c = final[1]
+def pincerCapture(currentState, r, c, final, track, piece):
+    possiblities = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+    capture = False
 
-
-    possiblities = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 0], [-1, 0], [0, 1], [0, -1]]
+    capturePiece = []
+    captureR = []
+    captureC = []
     for k in possiblities:
-        r = final[0]
-        c = final[1]
-        r += k[0]
-        c += k[1]
+        temp_r = final[0]
+        temp_c = final[1]
+        temp_r += k[0]
+        temp_c += k[1]
 
         try:
-            if currentState.board[r][c]%2 != track:
-                if currentState.board[r+k[0]][c+k[1]]%2 == track:
-                    captureList.append(currentState, currentState.board[r][c]) # capture list should be tuples
+            if currentState.board[temp_r][temp_c]%2 != track:
+                if currentState.board[temp_r+k[0]][temp_c+k[1]]%2 == track:
+                    capturePiece.append(currentState.board[temp_r][temp_c])
+                    captureR.append(temp_r)
+                    captureC.append(temp_c)
+                    capture = True
         except:
             # do nothing
+
+    newState = BC.BC_state(currentState.board)
+    newState.board[r][c] = 0
+    newState.board[final[0]][final[1]] = piece
+    count = 0
+    for i in capturePiece:
+        newState.board[captureR[count]][captureC[count]] = 0
+        count += 1
+    captureList.append([newState, capturePiece])
+
+    return capture
+
+
+def withdrawerMoves(currentState, r, c, piece, track):
+    movedirection = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [-1, 1], [1, -1]]
+    captureMoves = []
+
+    #withdrawerCapture states
+    for k in movedirection:
+        temp_r = r
+        temp_c = c
+
+        try:
+            if currentState.board[temp_r+k[0]][temp_c+k[1]]%2 != track:
+                captureMoves.append([k[0],k[1]])
+                captureMoves.append([-k[0],-k[1]])
+                capturePiece = currentState.board[temp_r+k[0]][temp_c+k[1]]
+                temp_c -= k[1]
+                temp_r -= k[0]
+                while (temp_c in range(8) and temp_r in range(8) and currentState.board[temp_r][temp_c] == 0):
+                    newState = BC.BC_state(currentState.board)
+                    newState.board[temp_r][temp_c] = piece
+                    newState.board[r][c] = 0
+                    newState.board[r+k[0]][c+k[1]] = 0
+                    captureList.append([newState, capturePiece])
+                    temp_c -= k[1]
+                    temp_r -= k[0]
+        except:
+            # do nothing
+
+    noncaptureMoves = [k for k in movedirection if k not in captureMoves]
+    #withdrawer general moves
+    for k in noncaptureMoves:
+        final = move(currentState, r, c, k, piece)
+
+
+def leaperMoves(currentState, r, c, piece, track):
+    movedirection = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [-1, 1], [1, -1]]
+
+    for k in movedirection:
+        final = move(currentState, r, c, k, piece)
+
+        #leaperCapture
+        temp_r = final[0]+k[0]
+        temp_c = final[1]+k[1]
+        if currentState.board[temp_r][temp_c]%2 != track:
+            if currentState.board[temp_r + k[0]][temp_c + k[1]] == 0:
+                newState = BC.BC_state(currentState.board)
+                capturePiece = newState.board[temp_r][temp_c]
+                newState.board[temp_r][temp_c] = 0
+                newState.board[r][c] = 0
+                newState.board[temp_r+k[0]][temp_c+k[1]] = piece
+                captureList.append([newState, capturePiece])
+
+def coordinatorMoves(currentState, r, c, piece, track):
+
+    myKing = 0
+    rk = 0
+    ck = 0
+    if track == 1: myKing = 13
+    else: myKing = 12
+
+    #Locating the king
+    for i in range(8):
+        for j in range(8):
+            if currentState.board[i][j] == myKing:
+                rk = i
+                ck = j
+
+    movedirection = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [-1, 1], [1, -1]]
+
+    for k in movedirection:
+        temp_r = r + k[0]
+        temp_c = c + k[1]
+        while (temp_c in range(8) and temp_r in range(8) and currentState.board[temp_r][temp_c] == 0):
+            newState = BC.BC_state(currentState.board)
+            newState.board[temp_r][temp_c] = piece
+            newState.board[r][c] = 0
+            if temp_r == rk or temp_c == ck:
+                movesList.append(newState)
+            else:
+                if newState.board[temp_r][ck]%2 != track and newState.board[rk][temp_c]%2 != track:
+                    capturePiece = [newState.board[temp_r][ck],newState.board[rk][temp_c]]
+                    newState.board[temp_r][ck] = 0
+                    newState.board[rk][temp_c] = 0
+                    captureList.append([newState, capturePiece])
+                elif newState.board[temp_r][ck] % 2 != track:
+                    capturePiece = newState.board[temp_r][ck]
+                    newState.board[temp_r][ck] = 0
+                    captureList.append([newState, capturePiece])
+                elif newState.board[rk][temp_c]%2 != track:
+                    capturePiece = newState.board[rk][temp_c]
+                    newState.board[rk][temp_c] = 0
+                    captureList.append([newState, capturePiece])
+                else:
+                    movesList.append(newState)
+
+            temp_r += k[0]
+            temp_c += k[1]
+
+def kingMoves(currentState, r, c, piece, track):
+    movedirection = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [-1, 1], [1, -1]]
+
+    for k in movedirection:
+        temp_r = r
+        temp_c = c
+        temp_r += k[0]
+        temp_c += k[1]
+
+        try:
+            if currentState.board[temp_r][temp_c]%2 != track:
+                newState = BC.BC_state(currentState.board)
+                capturePiece = newState.board[temp_r][temp_c]
+                newState.board[temp_r][temp_c] = piece
+                newState.board[r][c] = 0
+                captureList.append([newState, capturePiece])
+            elif currentState.board[temp_r][temp_c] == 0:
+                newState = BC.BC_state(currentState.board)
+                newState.board[temp_r][temp_c] = piece
+                newState.board[r][c] = 0
+                movesList.append(newState)
+        except:
+            # Do nothing
+
+
+def freezerMoves(currentState, r, c, piece):
+    movedirection = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [-1, 1], [1, -1]]
+
+    for k in movedirection:
+        final = move(currentState, r, c, k, piece)
+
+
+def imitatorMoves(currentState, r, c, piece, track):
+    movedirection = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [-1, 1], [1, -1]]
+
+    imitatingPiece = []
+    for k in movedirection:
+        temp_r = r
+        temp_c = c
+        temp_r += k[0]
+        temp_c += k[1]
+
+        try:
+            if currentState.board[temp_r][temp_c] % 2 != track:
+                imitatingPiece.append(CODE_TO_INIT[currentState.board[temp_r][temp_c]])
+        except:
+            # Do nothing
+
+    if len(imitatingPiece) == 0:
+        #move like a queen
+    else:
+        for newRole in imitatingPiece:
+            if newRole.lower() == 'p':
+
+
+
 
 
 
@@ -167,9 +338,9 @@ def move(currentState, r, c, k, item):
     # item in the form of number
     temp_c = c + k[1]
     temp_r = r + k[0]
-    while (temp_c in range(0, 7) and temp_r in range(0, 7) and currentState.board[temp_r][temp_c] == 0):
+    while (temp_c in range(8) and temp_r in range(8) and currentState.board[temp_r][temp_c] == 0):
         newState = BC.BC_state(currentState.board)
-        newState.board[r][temp_c] = item
+        newState.board[temp_r][temp_c] = item
         newState.board[r][c] = 0
         movesList.append(newState)
         # print("plusMoves r: ", temp_r, ", Temp c:", temp_c)
@@ -177,114 +348,6 @@ def move(currentState, r, c, k, item):
         temp_r += k[0]
 
     return [temp_r - k[0], temp_c - k[1]]
-
-def straightMoves(currentState, r, c, item):
-    """
-    plusMoves has been renamed as straightMoves for naming simplicity
-    Generates states in North, East, West, South.
-    :param currentState:
-    :param r:
-    :param c:
-    :param item:
-    :param direction:
-    :return:
-    """
-    movedirection = [[1, 0], [-1, 0], [0, 1], [0, -1]] # moves in North, South, East, West
-
-    for k in movedirection:
-        temp_c = c
-        temp_r = r
-
-        temp_c += k[1]
-        temp_r += k[0]
-        while (temp_c in range(0, 7) and temp_r in range(0, 7) and currentState.board[temp_r][temp_c] == 0):
-            newState = BC.BC_state(currentState.board)
-            newState.board[r][temp_c] = item
-            newState.board[r][c] = 0
-            movesList.append(newState)
-            # print("plusMoves r: ", temp_r, ", Temp c:", temp_c)
-            temp_c += k[1]
-            temp_r += k[0]
-
-
-
-
-
-
-def diagMoves (currentState, r, c, item):
-    """
-    :param currentState:
-    :param r:
-    :param c:
-    :param item:
-    :return:
-    """
-    movedirection = [[1, 1], [-1, -1], [-1, 1], [1, -1]]  # moves in SE, NW,
-    for k in movedirection:
-        temp_c = c
-        temp_r = r
-
-        temp_c += k[1]
-        temp_r += k[0]
-        while (temp_c in range(0, 7) and temp_r in range(0, 7) and currentState.board[temp_r][temp_c] == 0):
-            newState = BC.BC_state(currentState.board)
-            newState.board[r][temp_c] = item
-            newState.board[r][c] = 0
-            movesList.append(newState)
-            # print("Diagmoves r: ", temp_r, ", Temp c:", temp_c)
-            temp_c += k[1]
-            temp_r += k[0]
-
-
-
-def allDirMoves(currentState, r, c, item):
-    """
-    All direction move basically combines plusmoves and diagonal moves
-    :return:
-    """
-
-    straightMoves(currentState, r, c, item)
-    diagMoves(currentState, r, c, item)
-
-
-def oneStepMoves(currentState, r, c, item):
-    """
-    :param currentState:
-    :param r:
-    :param c:
-    :param item:
-    :return:
-    """
-    movedirection = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, 1]]
-
-    for k in movedirection:
-        temp_c = c
-        temp_r = r
-
-        temp_c += k[1]
-        temp_r += k[0]
-        if (temp_c in range(0, 7) and temp_r in range(0, 7) and currentState.board[temp_r][temp_c] == 0):
-            newState = BC.BC_state(currentState.board)
-            newState.board[r][temp_c] = item
-            newState.board[r][c] = 0
-            movesList.append(newState)
-            # print("Diagmoves r: ", temp_r, ", Temp c:", temp_c)
-
-
-
-    # temp_c = c
-    # temp_r = r
-    # if temp_c != 7:
-    #     temp_c += 1
-    #     while (temp_c != 7 and currentState.board[r][temp_c] == 0):
-    #         newState = BC.BC_state(currentState)
-    #         newState.board[r][temp_c] = item
-    #         newState.board[r][c] = 0
-    #         movesList.append(newState)
-    #         temp_c += 1
-
-
-
 
 
 def nickname():
@@ -379,39 +442,3 @@ def staticEval(state):
     pass
 
 
-# WHITE = 1
-#
-# INITIAL = parse('''
-# c l i w k i l f
-# p p p p p p p p
-# - - - - - - - -
-# - - - - - - - -
-# - - - - - - - -
-# - - - - - - - -
-# P P P P P P P P
-# F L I W K I L C
-# ''')
-#
-# def parse(bs):  # bs is board string
-#     """Translate a board string into the list of lists representation."""
-#     b = [[0, 0, 0, 0, 0, 0, 0, 0] for r in range(8)]
-#     rs9 = bs.split("\n")
-#     rs8 = rs9[1:]  # eliminate the empty first item.
-#     for iy in range(8):
-#         rss = rs8[iy].split(' ')
-#         for jx in range(8):
-#             b[iy][jx] = INIT_TO_CODE[rss[jx]]
-#     return b
-
-
-
-# def test_starting_board():
-#     print("1")
-#     import BC_state_etc as BC
-#     print(2)
-#     init_state = BC.BC_state(INITIAL, WHITE)
-#     print(init_state)
-#
-#
-# if __name__ == "__main__":
-#     test_starting_board()
