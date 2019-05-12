@@ -34,6 +34,9 @@ global captureList
 CODE_TO_INIT = {0:'-',2:'p',3:'P',4:'c',5:'C',6:'l',7:'L',8:'i',9:'I',
   10:'w',11:'W',12:'k',13:'K',14:'f',15:'F'}
 
+pieceValue = {0: 0, 2: -100, 3: 100, 4: -500, 5: 500, 6: 500, 7: -500, 8: -900, 9: 900, 10: -500,
+              11: 500, 12: 100000, 13: -100000, 14: -500, 15: 500}
+
 
 def parameterized_minimax(currentState, alphaBeta=False, ply=3, \
                           useBasicStaticEval=True, useZobristHashing=False):
@@ -547,30 +550,45 @@ def pincerKill(state, k):
             elif t[1] == -1:
                 t[1] += 1
 
+
+            if board[t[0]][t[1]] in opponentPieces and t[0] in range(1, 7) and t[1] in range(1, 7):
+                t[0] += t[0]
+                t[1] += t[1]
+                if board[t[0]][t[1]] not in opponentPieces and board[t[0]][t[1]] != 0:
+                    # call in the value of the piece. Add
+
+                    count += 1
+
+            if t[0] in range(1,7) and t[1] in range(1,7) and board[t[0]][t[1]] in opponentPieces:
+                t[0] += t[0]
+                t[1] += t[1]
+                if board[t[0]][t[1]] not in opponentPieces and board[t[0]][t[1]] != 0:
+                    # call in the value of the piece. Add
+
+                    count += 1
+
             # this can't be generalised, so split into 4
             # check if the other piece is opponent, if yes jump 1 step and check if its our piece
-            if s[0] == 1 and s[1] == 0:
-                if board[t[0]][t[1]] in opponentPieces and t[0] < 7:
-                    t[0] += 1
-                    if board[t[0]][t[1]] not in opponentPieces and board[t[0]][t[1]] != 0:
-                        count += 1
-            if s[0] == -1 and s[1] == 0:
-                if board[t[0]][t[1]] in opponentPieces and t[0] > 0:
-                    t[0] -= 1
-                    if board[t[0]][t[1]] not in opponentPieces and board[t[0]][t[1]] != 0:
-                        count += 1
-            if s[0] == 0 and s[1] == 1:
-                if board[t[0]][t[1]] in opponentPieces and t[1] < 7:
-                    t[0] += 1
-                    if board[t[0]][t[1]] not in opponentPieces and board[t[0]][t[1]] != 0:
-                        count += 1
-            if s[0] == 0 and s[1] == -1:
-                if board[t[0]][t[1]] in opponentPieces and t[1] > 0:
-                    t[0] -= 1
-                    if board[t[0]][t[1]] not in opponentPieces and board[t[0]][t[1]] != 0:
-                        count += 1
-
-
+            # if s[0] == 1 and s[1] == 0:
+            #     if board[t[0]][t[1]] in opponentPieces and t[0] < 7:
+            #         t[0] += 1
+            #         if board[t[0]][t[1]] not in opponentPieces and board[t[0]][t[1]] != 0:
+            #             count += 1
+            # if s[0] == -1 and s[1] == 0:
+            #     if board[t[0]][t[1]] in opponentPieces and t[0] > 0:
+            #         t[0] -= 1
+            #         if board[t[0]][t[1]] not in opponentPieces and board[t[0]][t[1]] != 0:
+            #             count += 1
+            # if s[0] == 0 and s[1] == 1:
+            #     if board[t[0]][t[1]] in opponentPieces and t[1] < 7:
+            #         t[0] += 1
+            #         if board[t[0]][t[1]] not in opponentPieces and board[t[0]][t[1]] != 0:
+            #             count += 1
+            # if s[0] == 0 and s[1] == -1:
+            #     if board[t[0]][t[1]] in opponentPieces and t[1] > 0:
+            #         t[0] -= 1
+            #         if board[t[0]][t[1]] not in opponentPieces and board[t[0]][t[1]] != 0:
+            #             count += 1
         # if s[0] == 1 and s[1] == 0:
         #     t = 0
         #     while k[0] + s[0] + t <= 7 and board[k[0] + s[0] + t][k[1]] == 0:
