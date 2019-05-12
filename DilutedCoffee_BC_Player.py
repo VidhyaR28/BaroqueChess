@@ -8,6 +8,8 @@ Diluted Coffee is a Baroque Chess Player made by Vidhya Rajendran and Krishna Te
 
 import BC_state_etc as BC
 import heapq
+import random
+import math
 
 """
 BLACK_PINCER      = 2
@@ -114,20 +116,34 @@ def successors(currentState):
 
 
 
-
 def makeMove(currentState, currentRemark, timelimit=10):
     # Compute the new state for a move.
     # You should implement an anytime algorithm based on IDDFS.
 
-    # The following is a placeholder that just copies the current state.
-
+    track = 0
     newState = BC.BC_state(currentState.board)
-    # print("Enters makeMove")
-    # SHIFT TO THE GENERATE STATES FUNCTION
+    if newState.whose_move == 'WHITE':
+        track = 1
+    else: track = 0
 
-                # print("Enters the iterating forloop of makeMove ")
-    generateStates(newState, timelimit)
-    # kt: newstate should be temp, parse through temp, and then make change?
+    king_r = 0
+    king_c = 0
+    for i in range(8):
+        for j in range(8):
+            piece = newState.board[i][j]
+            if piece == (12+track):
+                king_r = i
+                king_c = j
+
+    val = kingCheckAttack(newState, king_r, king_c, track)
+    if val:
+        states = kingAttackMove(newState, king_r, king_c, 12+track)
+        for state in states:
+            if not kingCheckAttack(state[1], king_r, king_c, track):
+                return [[move, newState], newRemark] #____________________________________________DO IT
+        kingMinionMove(newState, king_r, king_c, val, track)
+
+    else: generateStates(newState, timelimit)
 
     # Fix up whose turn it will be.
     newState.whose_move = 1 - currentState.whose_move
@@ -138,9 +154,8 @@ def makeMove(currentState, currentRemark, timelimit=10):
     # numbers:
     move = ((6, 4), (3, 4))
 
-    # Make up a new remark
-    # KT: Make a function called remark generator. Loop through 15 remarks
-    newRemark = "I'll think harder in some future game. Here's my move"
+
+    newRemark = remark()
 
     return [[move, newState], newRemark]
 
@@ -213,16 +228,15 @@ def generateStates(currentState, time):
 
     for i in range(8):
         for j in range(8):
-            # IMPORTANT: test whether your pieces are frozen. If so, skip the rest from here
-            if currentState.board[i][j] % 2 == track:
-                piece = currentState.board[i][j]
+            piece = currentState.board[i][j]
+            if piece not in frozenPieces and piece != 0 and piece%2 == track:
                 if piece == 2 or piece == 3: #Pincer - Done
                     pincerMoves(currentState, i, j, piece, track)
                 elif piece == 4 or piece == 5: #Coordinator - Done
                     coordinatorMoves(currentState, i, j, kingR, kingC, piece, track)
                 elif piece == 6 or piece == 7: #Leaper - Done
                     leaperMoves(currentState, i, j, piece, track)
-                elif piece == 8 or piece == 9: #Imitator
+                elif piece == 8 or piece == 9: #Imitator - Done
                     imitatorMoves(currentState, i, j, kingR, kingC, piece.lower())
                 elif piece == 10 or piece == 11: #Withdrawer - Done
                     withdrawerMoves(currentState, i, j, piece, track)
@@ -563,6 +577,113 @@ def move(currentState, r, c, k, item):
     return [temp_r-k[0], temp_c-k[1]]
 
 
+""" TO BE MOVED TO STATIC EVAL"""
+
+
+
+
+
+def kingCheckAttack(state, r, c, track):
+    movedirection = [[0, 1], [-1, 0], [0, -1], [1, 0], [-1, 1], [-1, -1], [1, -1], [1, 1]]
+
+    for k in movedirection:
+        try:
+            adj = state.board[r+k[0]][c+k[1]]
+            if adj == (3-track): #Pincer
+                return k
+            if adj == (11-track): #Withdrawer
+                return k
+            if adj == (9-track): #Imitator
+                return k
+        except:
+             dummy = None
+
+        temp_r = r+k[0]
+        temp_c = c+k[1]
+
+        while temp_r in range(8) and temp_c in range(8) and state.board[temp_r][temp_c] == 0:
+            temp_r += r + k[0]
+            temp_c += c + k[1]
+
+        adj = state.board[temp_r][temp_c]
+        if adj == (3-track) and k in movedirection[:4]: #Pincer
+            return k
+        if adj == (7-track): #Leaper
+            return k
+        if adj == (13-track) or adj == (5-track): #King-Coordinator
+            return k
+        if adj == (15-track): #Freezer
+            return k
+    return None
+
+
+def kingAttackMove(state, r, c, piece):
+    movedirection = [[0, 1], [-1, 0], [0, -1], [1, 0], [-1, 1], [-1, -1], [1, -1], [1, 1]]
+    returnList = []
+
+    for k in movedirection:
+        temp_r = r+k[0]
+        temp_c = c+k[1]
+
+        if temp_r in range(8) and temp_c in range(8) and state.board[temp_r][temp_c] == 0:
+            newState = BC.BC_state(state.board)
+            newState.board[r][c] = 0
+            newState.board[temp_r][temp_c] = piece
+            returnList.append([[r,c,temp_r,temp_c],newState])
+
+    return returnList
+
+def kingMinionMove(state, r, c, KK, track):
+    movedirection = [[0, 1], [-1, 0], [0, -1], [1, 0]]
+    closures = []
+    for i in range(3):
+        if r+(KK[0]*(i+1)) in range(8) and c+(KK[1]*(i+1)) in range(8):
+            closures.append((r+(KK[0]*(i+1)),c+(KK[1]*(i+1))))
+
+    for i in range(8):
+        for j in range(8):
+            piece = state.board[i][j]
+            if piece == (2+track) and KK in movedirection:
+                move = tryMove(state,i,j,closures,piece)
+                if move: return move
+            if piece == (4+track) or piece == (6+track) or piece == (8+track) or piece == (10+track) or piece == (14+track):
+                move = tryMove(state,i,j,closures, piece)
+                if move: return move
+
+def tryMove(state, r, c, possibilities, piece):
+    newState = BC.BC_state(state.board)
+    newState.board[r][c] = 0
+    for p in possibilities:
+        if r == p[0]:
+            val = abs(c-p[1])-1
+            occupied = False
+            minVal = min(c,p[1])
+            while val > 0:
+                if newState.board[r][minVal+1] != 0:
+                    occupied = True
+                minVal += 1
+                val -= 1
+            if not occupied:
+                newState.board[r][p[1]] = piece
+                return [[r,c,r,p[1]],newState]
+
+        if c == p[1]:
+            val = abs(r - p[0]) - 1
+            occupied = False
+            minVal = min(r, p[0])
+            while val > 0:
+                if newState.board[minVal + 1][c] != 0:
+                    occupied = True
+                minVal += 1
+                val -= 1
+            if not occupied:
+                    newState.board[p[0]][c] = piece
+                    return [[r, c, p[0], c], newState]
+
+    return None
+
+
+
 def nickname():
     return "Brew"
 
@@ -639,6 +760,9 @@ def basicStaticEval(state):
     return totalEval
 
 
+def remark():
+    remarks = ["Your turn!", "Take that!", "Try to beat that!", "Think well before you move", "Best is yet to come!", "Come on you!"]
+    return random.choice(remarks)
 
 
 def staticEval(state):
@@ -651,6 +775,12 @@ def staticEval(state):
     :param state:
     :return:
     """
-    pass
+
+
+    for i in range(8):
+        for j in range(8):
+            piece = state.board[i][j]
+
+
 
 
