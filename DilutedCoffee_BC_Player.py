@@ -7,6 +7,7 @@ Diluted Coffee is a Baroque Chess Player made by Vidhya Rajendran and Krishna Te
 """
 
 import BC_state_etc as BC
+import heapq
 
 """
 BLACK_PINCER      = 2
@@ -68,9 +69,50 @@ def parameterized_minimax(currentState, alphaBeta=False, ply=3, \
     the pieces on the board in the given state.
     """
 
+    priorityqueue = []
+    if alphaBeta == False:
+        free = 0
+    else:
+        free = 1 # CHANGE THIS AFTER IMPLEMENTING ALPHA-BETA
+
+    if ply == 0:
+        returnVal = {'CURRENT_STATE_STATIC_VAL': basicStaticEval(currentState), 'N_STATES_EXPANDED': 1,
+                     'N_STATIC_EVALS': 1, 'N_CUTOFFS': free}
+        return basicStaticEval(currentState)
+    if currentState.whose_move == 1:
+        provisional = -100000
+    else:
+        provisional = 100000
+
+    # for s in generate states
+    global movesList
+
+    for s in successors(currentState): # CAN'T USE MOVESLIST, HAVE TO GENERATE KIDS.
+        heapq.heappush(priorityqueue, s)
+
+    for s in priorityqueue:
+        newVal = parameterized_minimax(s, alphaBeta, ply - 1, useBasicStaticEval, useZobristHashing)
+        if ((currentState.whose_move == 1 and newVal > provisional)
+                or (currentState.whose_move == 0 and newVal < provisional)):
+            provisional = newVal
+            provisional.update('N_STATES_EXPANDED', len(s) + 1)
+            provisional.update('N_STATIV_EVALS', len(s) + 1) # when will this not be same in minimax?
 
 
     pass
+
+
+def successors(currentState):
+    """
+    Takes in a list of successors and returns them
+    :param currentState:
+    :return:
+    """
+
+    return []
+
+
+
 
 
 def makeMove(currentState, currentRemark, timelimit=10):
