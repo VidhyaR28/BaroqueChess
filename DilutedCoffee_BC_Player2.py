@@ -618,7 +618,6 @@ def pincerKill(state, k):
         #         if board[k[1] + s[1] + t] not in opponentPieces and board[k[0] + s[0] + t][k[1]] != 0:
         #             count += 1
 
-    def pincerKill(state, k):
 
     return count # count times some factor
 
