@@ -43,57 +43,38 @@ pieceValue = {0: 0, 2: -100, 3: 100, 4: -500, 5: 500, 6: 500, 7: -500, 8: -900, 
               11: 500, 12: 100000, 13: -100000, 14: -500, 15: 500}
 
 WHITE = 1
+BLACK = 0
 
 
 
 def parameterized_minimax(currentState, alphaBeta=False, ply=3, \
                           useBasicStaticEval=True, useZobristHashing=False):
-    """
-    Implement this testing function for your agent's basic
-    capabilities here.
-    :param currentState:
-    :param alphaBeta:
-    :param ply:
-    :param useBasicStaticEval:
-    :param useZobristHashing:
-    :return:
-    """
-    """
-    Pseudocode: 
-    
-    Procedure minimax(board, whoseMove, plyLeft):
-        if plyLeft == 0: return staticValue(board)
-        if whoseMove == ‘Max’: provisional = -100000 else: provisional = 100000
-        for s in successors(board, whoseMove):
-            newVal = minimax(s, other(whoseMove), plyLeft-1) if (whoseMove == ‘Max’ and newVal > provisional
-        or (whoseMove == ‘Min’ and newVal < provisional): 
-            provisional = newVal
-        return provisional
-    """
-
-
-    """
-    When useBasicStaticEval is true, you'll evaluate leaf nodes of your search tree with your own implementation of 
-    the following function: White pincers are worth 1, the White king is worth 100, and all other White pieces are 
-    worth 2. Black pieces have the same values as their white counterparts, but negative. When useBasicStaticEval is 
-    False, you should use your own, more discriminating function. The value of the function is the sum of the values of 
-    the pieces on the board in the given state.
-    """
-
-    priorityqueue = []
-    if alphaBeta == False:
-        free = 0
-    else:
-        free = 1 # CHANGE THIS AFTER IMPLEMENTING ALPHA-BETA
+    CURRENT_STATE_STATIC_VAL
+    N_STATES_EXPANDED
+    N_STATIC_EVALS
+    N_CUTOFFS
 
     if ply == 0:
-        returnVal = {'CURRENT_STATE_STATIC_VAL': basicStaticEval(currentState), 'N_STATES_EXPANDED': 1,
-                     'N_STATIC_EVALS': 1, 'N_CUTOFFS': free}
-        return basicStaticEval(currentState)
-    if currentState.whose_move == 1:
-        provisional = -100000
+        dict = {'CURRENT_STATE_STATIC_VAL':staticEval(currentState), 'N_STATES_EXPANDED': 1, 'N_STATIC_EVALS': 1, 'N_CUTOFFS': 0  }
+        return [staticEval(currentState),1,1,0]
+    for states in successors(currentState): #Need a list of states
+        heapq.heappush(ordered_states, child)  # order states
+    if state.whose_move == 1:
+        v = -100000
+        for child in ordered_states:
+            b = mini_max(child, depth - 1, 1)
+            if b > v:
+                v = b
+        return v
     else:
-        provisional = 100000
+        v = 1000000
+        for child in ordered_states:
+            b = mini_max(child, depth - 1, 1)
+            if b < v:
+                v = b
+        return v
+
+
 
     # for s in generate states
     global movesList
@@ -110,25 +91,13 @@ def parameterized_minimax(currentState, alphaBeta=False, ply=3, \
             provisional.update('N_STATIV_EVALS', len(s) + 1) # when will this not be same in minimax?
 
 
-    pass
-
-
-def successors(currentState):
-    """
-    Takes in a list of successors and returns them
-    :param currentState:
-    :return:
-    """
-
-    return []
-
-
-
-
 def makeMove(currentState, currentRemark, timelimit=10):
     # Compute the new state for a move.
     # You should implement an anytime algorithm based on IDDFS.
 
+    # TIMER COMPONENT
+
+    bestMove = None
     track = 0
     newState = BC.BC_state(currentState.board)
     if newState.whose_move == 'WHITE':
@@ -158,16 +127,18 @@ def makeMove(currentState, currentRemark, timelimit=10):
                 return [[move, newState], newRemark] #____________________________________________DO IT
         return kingMinionMove(newState, king_r, king_c, attackDir, track) #_______________________
 
-    else: generateStates(newState, timelimit)
+    else:
+        #IDDFS
+        for depth in range(15):
+            currentBest = parameterized_minimax(currentState, True, depth, False, False)
+            if #TIMER CLOSE TO EXPIRING:
+                bestMove = currentBest
+
 
     # Fix up whose turn it will be.
-    newState.whose_move = 1 - currentState.whose_move
+    newState.whose_move = 1 - track
 
-    # Construct a representation of the move that goes from the
-    # currentState to the newState.
-    # Here is a placeholder in the right format but with made-up
-    # numbers:
-    move = ((6, 4), (3, 4))
+    #  move = ((6, 4), (3, 4))
 
 
     newRemark = remark()
@@ -177,14 +148,28 @@ def makeMove(currentState, currentRemark, timelimit=10):
     return [[move, newState], newRemark]
 
 
-def generateStates(currentState, time):
+def successors(currentState):
+    global movesList
+    global captureList
+    movesList = []
+    captureList = []
+    generateStates(currentState)
+    fullList = []
+    for moves in captureList:
+        fullList.append() #______________________________________________DO IT
+    for moves in movesList:
+        fullList.append()
+    return fullList
+
+
+def generateStates(currentState):
     """
     Generates a list of possible states
     :param currentState: BC_state_etc -> class BC_state
     :param time:
     :return:
     """
-    if currentState.whose_move == 'WHITE':
+    if currentState.whose_move == 1:
         track = 1
     else: track = 0
 
@@ -254,7 +239,7 @@ def generateStates(currentState, time):
                 elif piece == 12 or piece == 13: #King - Done
                     kingMoves(currentState, i, j, cordR, cordC, piece, track)
                 elif piece == 14 or piece == 15: #Freezer - Done
-                    freezerMoves(currentState, i, j, piece)
+                    freezerMoves(currentState, i, j, piece, track)
 
 def pincerMoves(currentState, r, c, piece, track):
     movedirection = [[0, 1], [-1, 0], [0, -1], [1, 0]]
@@ -266,6 +251,7 @@ def pincerMoves(currentState, r, c, piece, track):
             newState = BC.BC_state(currentState.board)
             newState.board[temp_r][temp_c] = piece
             newState.board[r][c] = 0
+            newState.whose_move = 1-track
             neighbour = [dir for dir in movedirection if dir != k]
             capturePiece = []
             captureR = []
@@ -312,6 +298,7 @@ def withdrawerMoves(currentState, r, c, piece, track):
                     newState = BC.BC_state(currentState.board)
                     newState.board[temp_r][temp_c] = piece
                     newState.board[r][c] = 0
+                    newState.whose_move = 1 - track
                     newState.board[r+k[0]][c+k[1]] = 0
                     captureList.append([r,c,temp_r,temp_c],newState)
                     capture = True
@@ -326,7 +313,7 @@ def withdrawerMoves(currentState, r, c, piece, track):
     noncaptureMoves = [k for k in movedirection if k not in captureMoves]
 
     for k in noncaptureMoves:
-        final = move(currentState, r, c, k, piece)
+        final = move(currentState, r, c, k, piece, track)
 
 
 def leaperMoves(currentState, r, c, piece, track):
@@ -334,7 +321,7 @@ def leaperMoves(currentState, r, c, piece, track):
 
     for k in movedirection:
         # leaper non-capture moves
-        final = move(currentState, r, c, k, piece)
+        final = move(currentState, r, c, k, piece, track)
 
         # leaper Capture moves
         if final:
@@ -346,6 +333,7 @@ def leaperMoves(currentState, r, c, piece, track):
                         newState = BC.BC_state(currentState.board)
                         newState.board[temp_r][temp_c] = 0
                         newState.board[r][c] = 0
+                        newState.whose_move = 1 - track
                         newState.board[temp_r+k[0]][temp_c+k[1]] = piece
                         captureList.append([[r,c,temp_r+k[0],temp_c+k[1]], newState])
 
@@ -357,12 +345,17 @@ def coordinatorMoves(currentState, r, c, rk, ck, piece, track):
         temp_r = r + k[0]
         temp_c = c + k[1]
         while temp_r in range(8) and temp_c in range(8) and currentState.board[temp_r][temp_c] == 0:
-            newState = BC.BC_state(currentState.board)
-            newState.board[temp_r][temp_c] = piece
-            newState.board[r][c] = 0
             if temp_r == rk or temp_c == ck:
+                newState = BC.BC_state(currentState.board)
+                newState.board[temp_r][temp_c] = piece
+                newState.board[r][c] = 0
+                newState.whose_move = 1 - track
                 movesList.append([[r,c,temp_r,temp_c],newState])
             else:
+                newState = BC.BC_state(currentState.board)
+                newState.board[temp_r][temp_c] = piece
+                newState.board[r][c] = 0
+                newState.whose_move = 1 - track
                 if newState.board[temp_r][ck] in opponent and newState.board[rk][temp_c] in opponent:
                     newState.board[temp_r][ck] = 0
                     newState.board[rk][temp_c] = 0
@@ -387,14 +380,18 @@ def kingMoves(currentState, r, c, rcord, ccord, piece, track):
         temp_r = r +k[0]
         temp_c = c +k[1]
         if temp_r in range(8) and temp_c in range(8):
-            newState = BC.BC_state(currentState.board)
-            newState.board[temp_r][temp_c] = piece
-            newState.board[r][c] = 0
-
             if currentState.board[temp_r][temp_c] in opponent:
+                newState = BC.BC_state(currentState.board)
+                newState.board[temp_r][temp_c] = piece
+                newState.board[r][c] = 0
+                newState.whose_move = 1 - track
                 captureList.append([[r,c,temp_r,temp_c],newState])
             elif currentState.board[temp_r][temp_c] == 0:
                 #captures with coordinator
+                newState = BC.BC_state(currentState.board)
+                newState.board[temp_r][temp_c] = piece
+                newState.board[r][c] = 0
+                newState.whose_move = 1 - track
                 if newState.board[temp_r][ccord] in opponent and newState.board[rcord][temp_c] in opponent:
                     newState.board[temp_r][ccord] = 0
                     newState.board[rcord][temp_c] = 0
@@ -409,11 +406,11 @@ def kingMoves(currentState, r, c, rcord, ccord, piece, track):
                     movesList.append([[r, c, temp_r, temp_c], newState])
 
 
-def freezerMoves(currentState, r, c, piece):
+def freezerMoves(currentState, r, c, piece, track):
     movedirection = [[0, 1], [-1, 0], [0, -1], [1, 0], [-1, 1], [-1, -1], [1, -1], [1, 1]]
 
     for k in movedirection:
-        final = move(currentState, r, c, k, piece)
+        final = move(currentState, r, c, k, piece, track)
 
 
 def imitatorMoves(currentState, r, c, rk, ck, piece, track):
@@ -421,12 +418,13 @@ def imitatorMoves(currentState, r, c, rk, ck, piece, track):
 
     # Stationary analysis
     for k in movedirection:
-        newState = BC.BC_state(currentState.board)
-        newState.board[r][c] = 0
-        if r+k[0] in range(8) and c+k[1] in range(8):
+        if r+k[0] in range(8) and c+k[1] in range(8) and currentState.board[r+k[0]][c+k[1]] in opponent:
             enemy = currentState.board[r+k[0]][c+k[1]]
             # King capture
             if enemy == (13 - track):
+                newState = BC.BC_state(currentState.board)
+                newState.board[r][c] = 0
+                newState.whose_move = 1 - track
                 newState.board[r+k[0]][c+k[1]] = piece
                 captureList.append([[r, c, r+k[0], c+k[1]], newState])
 
@@ -435,6 +433,9 @@ def imitatorMoves(currentState, r, c, rk, ck, piece, track):
                 temp_r = r-k[0]
                 temp_c = r-k[1]
                 while temp_r in range(8) and temp_c in range(8) and currentState.board[temp_r][temp_c] == 0:
+                    newState = BC.BC_state(currentState.board)
+                    newState.board[r][c] = 0
+                    newState.whose_move = 1 - track
                     newState.board[temp_r][temp_c] = piece
                     newState.board[r+k[0]][c+k[1]] = 0
                     captureList.append([[r, c, r-k[0], c-k[1]], newState])
@@ -445,36 +446,54 @@ def imitatorMoves(currentState, r, c, rk, ck, piece, track):
             if enemy == (5-track):
                 if r+k[0] == rk and rk != r:
                     if currentState.board[r][c+k[1]] == 0:
+                        newState = BC.BC_state(currentState.board)
+                        newState.board[r][c] = 0
+                        newState.whose_move = 1 - track
                         newState.board[r][c+k[1]] = piece
                         newState.board[r + k[0]][c + k[1]] = 0
                         captureList.append([[r, c, r, c + k[1]], newState])
 
-                if r+k[0] == rk and c+k[1] == c:
+                elif r+k[0] == rk and c+k[1] == c:
                     if r+1 in range(8):
                         if currentState.board[r+1][c] == 0:
+                            newState = BC.BC_state(currentState.board)
+                            newState.board[r][c] = 0
+                            newState.whose_move = 1 - track
                             newState.board[r+1][c] = piece
                             newState.board[r + k[0]][c + k[1]] = 0
                             captureList.append([[r, c, r+1, c], newState])
-                    if r-1 in range(8):
+                    elif r-1 in range(8):
                         if currentState.board[r-1][c] == 0:
+                            newState = BC.BC_state(currentState.board)
+                            newState.board[r][c] = 0
+                            newState.whose_move = 1 - track
                             newState.board[r-1][c] = piece
                             newState.board[r + k[0]][c + k[1]] = 0
                             captureList.append([[r, c, r-1, c], newState])
 
-                if c+k[0] == ck and ck != c:
+                elif c+k[0] == ck and ck != c:
                     if currentState.board[r+k[0]][c] == 0:
+                        newState = BC.BC_state(currentState.board)
+                        newState.board[r][c] = 0
+                        newState.whose_move = 1 - track
                         newState.board[r+k[0]][c] = piece
                         newState.board[r + k[0]][c + k[1]] = 0
                         captureList.append([[r, c, r+k[0], c], newState])
 
-                if c+k[0] == ck and r+k[0] == r:
+                elif c+k[0] == ck and r+k[0] == r:
                     if c+1 in range(8):
                         if currentState.board[r][c+1] == 0:
+                            newState = BC.BC_state(currentState.board)
+                            newState.board[r][c] = 0
+                            newState.whose_move = 1 - track
                             newState.board[r][c+1] = piece
                             newState.board[r + k[0]][c + k[1]] = 0
                             captureList.append([[r, c, r, c+1], newState])
-                    if c-1 in range(8):
+                    elif c-1 in range(8):
                         if currentState.board[r][c-1] == 0:
+                            newState = BC.BC_state(currentState.board)
+                            newState.board[r][c] = 0
+                            newState.whose_move = 1 - track
                             newState.board[r][c-1] = piece
                             newState.board[r + k[0]][c + k[1]] = 0
                             captureList.append([[r, c, r, c-1], newState])
@@ -484,6 +503,9 @@ def imitatorMoves(currentState, r, c, rk, ck, piece, track):
                 temp_r = r+k[0]+k[0]
                 temp_c= c+k[1]+k[1]
                 if temp_r in range(8) and temp_c in range(8) and currentState.board[temp_r][temp_c] == 0:
+                    newState = BC.BC_state(currentState.board)
+                    newState.board[r][c] = 0
+                    newState.whose_move = 1 - track
                     newState.board[temp_r][temp_c] = piece
                     newState.board[r+k[0]][c+k[1]] = 0
                     captureList.append([[r, c, temp_r, temp_c], newState])
@@ -493,14 +515,18 @@ def imitatorMoves(currentState, r, c, rk, ck, piece, track):
     for k in movedirection:
         temp_r = r + k[0]
         temp_c = c + k[1]
-        newState = BC.BC_state(currentState.board)
-        newState.board[r][c] = 0
         while temp_r in range(8) and temp_c in range(8) and currentState.board[temp_r][temp_c] == 0:
             cap = imitatorDEval(currentState, temp_r, temp_c, rk, ck, track)
             if len(cap) == 0:
+                newState = BC.BC_state(currentState.board)
+                newState.board[r][c] = 0
+                newState.whose_move = 1 - track
                 newState.board[temp_r][temp_c] = piece
                 movesList.append([[r, c, temp_r, temp_c], newState])
             else:
+                newState = BC.BC_state(currentState.board)
+                newState.board[r][c] = 0
+                newState.whose_move = 1 - track
                 for li in cap:
                     newState.board[li[0]][li[1]] = 0
                 newState.board[temp_r][temp_c] = piece
@@ -511,6 +537,9 @@ def imitatorMoves(currentState, r, c, rk, ck, piece, track):
         # Leaper capture
         if currentState.board[temp_r][temp_c] == (7 - track):
             if temp_r+k[0] in range(8) and temp_c+k[1] in range(8) and currentState.board[temp_r+k[0]][temp_c+k[1]] == 0:
+                newState = BC.BC_state(currentState.board)
+                newState.board[r][c] = 0
+                newState.whose_move = 1 - track
                 newState.board[temp_r][temp_c] = 0
                 newState.board[temp_r+k[0]][temp_c+k[1]] = piece
                 captureList.append([[r, c, temp_r, temp_c], newState])
@@ -538,13 +567,14 @@ def imitatorDEval(currentState, r, c, rk, ck, track):
     return cList
 
 
-def move(currentState, r, c, k, item):
+def move(currentState, r, c, k, item, track):
     temp_r = r+k[0]
     temp_c = c+k[1]
     while temp_r in range(8) and temp_c in range(8) and currentState.board[temp_r][temp_c] == 0:
         newState = BC.BC_state(currentState.board)
         newState.board[temp_r][temp_c] = item
         newState.board[r][c] = 0
+        newState.whose_move = 1 - track
         movesList.append([[r,c,temp_r,temp_c],newState])
         temp_r += k[0]
         temp_c += k[1]
@@ -621,19 +651,19 @@ def kingMinionMove(state, r, c, KK, track):
                 if move: return move
 
 def tryMove(state, r, c, possibilities, piece):
-    newState = BC.BC_state(state.board)
-    newState.board[r][c] = 0
     for p in possibilities:
         if r == p[0]:
             val = abs(c-p[1])-1
             occupied = False
             minVal = min(c,p[1])
             while val > 0:
-                if newState.board[r][minVal+1] != 0:
+                if state.board[r][minVal+1] != 0:
                     occupied = True
                 minVal += 1
                 val -= 1
             if not occupied:
+                newState = BC.BC_state(state.board)
+                newState.board[r][c] = 0
                 newState.board[r][p[1]] = piece
                 return [[r,c,r,p[1]],newState]
 
@@ -642,14 +672,15 @@ def tryMove(state, r, c, possibilities, piece):
             occupied = False
             minVal = min(r, p[0])
             while val > 0:
-                if newState.board[minVal + 1][c] != 0:
+                if state.board[minVal + 1][c] != 0:
                     occupied = True
                 minVal += 1
                 val -= 1
             if not occupied:
-                    newState.board[p[0]][c] = piece
-                    return [[r, c, p[0], c], newState]
-
+                newState = BC.BC_state(state.board)
+                newState.board[r][c] = 0
+                newState.board[p[0]][c] = piece
+                return [[r, c, p[0], c], newState]
     return None
 
 
@@ -663,14 +694,6 @@ def introduce():
 
 
 def prepare(player2Nickname, playWhite = False):
-    """
-    Here the game master will give your agent the nickname of
-    the opponent agent, in case your agent can use it in some of
-    the dialog responses.  Other than that, this function can be
-    used for initializing data structures, if needed.
-    :param player2Nickname:
-    :return:
-    """
     global colourtrack
     global captureList
     global movesList
@@ -685,8 +708,6 @@ def prepare(player2Nickname, playWhite = False):
     else:
         colourtrack = 0
     print("Hey, I'm super prepared at this point.")
-
-    return
 
 
 def basicStaticEval(state):
