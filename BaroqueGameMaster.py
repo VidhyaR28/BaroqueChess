@@ -9,7 +9,7 @@ VERSION = '1.0-BETA'
 
 import sys
 import BC_checker   # API for accessing web-based move validation.
-TIME_PER_MOVE = 1   # Default time limit is one second.
+TIME_PER_MOVE = 10   # Default time limit is one second.
 TURN_LIMIT = 5      # Good for testing.
 
 # TURN_LIMIT = 100 # Terminates runaway games.
@@ -22,7 +22,7 @@ if len(sys.argv) > 1:
     if len(sys.argv) > 3:
         TIME_PER_MOVE = float(sys.argv[3])
 else:
-    import PlayerSkeletonA as player1
+    import DilutedCoffee_BC_Player as player1
     import PlayerSkeletonB as player2
 
 import BC_state_etc as BC

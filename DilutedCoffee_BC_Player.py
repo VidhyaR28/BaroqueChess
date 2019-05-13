@@ -60,7 +60,7 @@ def parameterized_minimax(currentState, alphaBeta=False, ply=3, useBasicStaticEv
     numberEvals = 0
     cutoff = 0
 
-    chosen = miniMax(currentState, ply, -100000, 100000)
+    chosen = miniMax([[0,0,0,0],currentState], ply, -100000, 100000)
     chosenMove = chosen[1]
     dict = {'CURRENT_STATE_STATIC_VAL': chosen[0], 'N_STATES_EXPANDED': statesExpanded, 'N_STATIC_EVALS': numberEvals, 'N_CUTOFFS': cutoff}
     return dict
@@ -73,9 +73,11 @@ def miniMax(state, depth, a, b):
     global cutoff
     if depth == 0:
         numberEvals += 1
-        return [staticEval(state[1]),state]
+        static = staticEval(state[1])
+        print ("after static eval")
+        return [static,state]
     #states is [[moves],state]
-    states = successors(state[1]) # Need a list of states
+    states = successors(state[1])
     if state[1].whose_move == 1:
         val = -100000
         Bstate = None #[[moves],state]
@@ -143,18 +145,19 @@ def makeMove(currentState, currentRemark, timelimit=10):
         finalSave = kingMinionMove(newState, king_r, king_c, attackDir, track)
         return [[simplify(finalSave[0]), finalSave[1]], "Phew! Close save!"]
 
-    else:
-        #IDDFS
-        for depth in range(15):
-            parameterized_minimax(currentState, True, depth, False, False)
-            if timer: #TIMER CLOSE TO EXPIRING:
-                global chosenMove
-                outMove = simplify(chosenMove[0])
-                outState = chosenMove[1]
-                newRemark = remark()
-                global moveCount
-                moveCount += 1
-                return [[outMove, outState], newRemark]
+
+    #IDDFS
+    for depth in range(15):
+        parameterized_minimax(currentState, True, depth, False, False)
+        print ("here")
+        if depth == 2: # keep track of the timer to timeout here
+            global chosenMove
+            outMove = simplify(chosenMove[0])
+            outState = chosenMove[1]
+            newRemark = remark()
+            global moveCount
+            moveCount += 1
+            return [[outMove, outState], newRemark]
 
 
 def successors(currentState):
@@ -168,6 +171,7 @@ def successors(currentState):
         fullList.append(moves)
     for moves in movesList:
         fullList.append(moves)
+    print("successors here")
     return fullList
 
 
