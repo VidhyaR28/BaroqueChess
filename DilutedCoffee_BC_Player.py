@@ -67,24 +67,39 @@ def parameterized_minimax(currentState, alphaBeta=False, ply=3, useBasicStaticEv
 
 
 def miniMax(state, depth, a, b):
-    # returns [value, [[moves],state]]
+    """
+
+    :param state: [[0,0,0,0],currentState] is the default
+    :param depth: number of plys
+    :param a: alpha
+    :param b: beta
+    :return: [value, [[moves],state]]
+    """
+
+    # This function has to return [value, [[moves], state]], It isn't updating Bstate for some reason?
+    print("Minimax")
+    print(state)
     global statesExpanded
     global numberEvals
     global cutoff
     if depth == 0:
         numberEvals += 1
+        print("Pre static")
+        print(state[1])
         static = staticEval(state[1])
         print ("after static eval")
         return [static,state]
-    #states is [[moves],state]
+    # states is [[moves],state]
     states = successors(state[1])
     if state[1].whose_move == 1:
         val = -100000
         Bstate = None #[[moves],state]
         for child in states:
+            print("Child loops")
             statesExpanded += 1
             function = miniMax(child, depth - 1, a, b)
             if function[0] > val:
+                print("Enters the if part")
                 Bstate = child
                 val = function[0]
             if val > b:
@@ -100,6 +115,7 @@ def miniMax(state, depth, a, b):
             statesExpanded += 1
             function = miniMax(child, depth - 1, a, b)
             if function[0] < val:
+                print("Enters the if part 2")
                 Bstate = child
                 val = function[0]
             if val < a:
@@ -716,10 +732,12 @@ def prepare(player2Nickname, playWhite = False):
     global captureList
     global movesList
     global moveCount
-
+    global chosenMove
     captureList = []
     movesList = []
     moveCount = 0
+    chosenMove = [0,0,0,0]
+
 
     if (playWhite == True):
         colourtrack = 1
@@ -761,44 +779,55 @@ def remark():
 
 
 def staticEval(state):
+
     returnval = 0
 
     for i in range(0, 8):
         for j in range(0, 8):
+            print("Piece location: (", i, ", ", j,") Piece value:",  state.board[i][j])
             if state.board[i][j] in [2, 3]:
                 # Pincer
-                returnval += pincerMobility(state, [i, j]) + pincerKill(state.board, [i, j])
-
+                print("Enter Pincer")
+                returnval += pincerMobility(state, [i, j]) + pincerKill(state, [i, j])
+                print("Pincer done")
             elif state.board[i][j] in [4, 5]:
                 # Coordinator
+                print("Enter Coordinator")
                 returnval += coordinatorKill(state, [i, j])
+                print("Coordinator done")
 
             elif state.board[i][j] in [6, 7]:
                 # Leaper
+                print("Enter Leaper")
                 returnval += leaperKill(state, [i, j])
-
+                print("Leaper done")
             elif state.board[i][j] in [10, 11]:
                 # Withdrawer
+                print("Enter Withdrawer")
                 returnval += withdrawerKill(state, [i, j])
-
+                print("Withdrawer done")
             elif state.board[i][j] in [12, 13]:
                 # King
+                print("Enter King")
                 returnval += kingCheck(state, [i, j])
-
+                print("King done")
             elif state.board[i][j] in [14, 15]:
                 # Freezer
+                print("Enter Freezer")
                 returnval += freezerKill(state, [i, j]) / 2
-
+                print("Freezer done")
     return returnval
 
 
 def pincerMobility(state, k):
+    print("Pincer Mobility")
     board = state.board
     movedirection = [[1, 0], [-1, 0], [0, 1], [0, -1]]
     count = 0
     for s in movedirection:
-        if board[k[0] + s[0]][k[1] + s[1]] == 0:
-            count += 1
+        if (k[0] + s[0]) in range(0, 8) and (k[1] + s[1]) in range(0, 8):
+            if board[k[0] + s[0]][k[1] + s[1]] == 0:
+                count += 1
     return count * 5
 
 
@@ -807,6 +836,7 @@ def pincerKill(state, k):
     # go north, south, east, west. Hit a block. Check if it's the other colour. If yes, go one step ahead and see if we
     # have a piece there. If yes, more points.
     count = 0
+    print("Pincer Kill")
     movedirection = [[1, 0], [-1, 0], [0, 1], [0, -1]]
 
     if board[k[0]][k[1]] in [2, 4, 6, 8, 10, 12, 14]:
@@ -845,6 +875,7 @@ def pincerKill(state, k):
                         t[1] -= s[1]
                         networth += pieceValue.get(board[t[0]][t[1]])
                         count += 1
+    print("Pincer Kill end")
     return networth * count
 
 
@@ -866,7 +897,7 @@ def freezerKill(state, k):
         t = k
         t[0] += s[0]
         t[1] += s[1]
-        while (t[0] in range(0, 8) and t[1] in range(0, 8) and board[t[0]][t[1]] != 0):
+        if (t[0] in range(0, 8) and t[1] in range(0, 8) and board[t[0]][t[1]] != 0):
             if board[t[0]][t[1]] in opponentPieces:
                 # do something
                 networth = pieceValue.get(board[t[0]][t[1]])
@@ -893,9 +924,10 @@ def kingCheck(state, k):
 
     for s in movedirection:
         t = k
+        print("S : ", s)
         t[0] += s[0]
         t[1] += s[1]
-        while (t[0] in range(0, 8) and t[1] in range(0, 8) and board[t[0]][t[1]] != 0):
+        if t[0] in range(0, 8) and t[1] in range(0, 8) and board[t[0]][t[1]] != 0:
             if board[t[0]][t[1]] in opponentPieces:
                 if pieceValue.get(board[t[0]][t[1]]) < 0:
                     count -= 800
@@ -906,6 +938,7 @@ def kingCheck(state, k):
                     count -= 800
                 else:
                     count += 800
+
 
     return count
 
@@ -972,10 +1005,12 @@ def withdrawerKill(state, k):
         t = k
         t[0] += s[0]
         t[1] += s[1]
-
-        if board[t[0]][t[1]] in opponentPieces:
-            if board[t[0] + s[0]][t[1] + s[1]]:
-                count += pieceValue.get(board[t[0]][t[1]])
+        if t[0] in range(0, 8) and t[1] in range(0, 8):
+            
+            if board[t[0]][t[1]] in opponentPieces:
+                if (t[0] + s[0]) in range(0, 8) and (t[1] + s[1]) in range(0, 8):
+                    if board[t[0] + s[0]][t[1] + s[1]]:
+                        count += pieceValue.get(board[t[0]][t[1]])
 
     return count
 
