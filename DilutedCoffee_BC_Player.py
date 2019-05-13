@@ -32,6 +32,9 @@ WHITE_FREEZER     = 15
 global colourtrack
 global movesList
 global captureList
+global opponent
+global friendly
+global moveCount
 
 CODE_TO_INIT = {0:'-',2:'p',3:'P',4:'c',5:'C',6:'l',7:'L',8:'i',9:'I',
   10:'w',11:'W',12:'k',13:'K',14:'f',15:'F'}
@@ -126,6 +129,12 @@ def makeMove(currentState, currentRemark, timelimit=10):
         track = 1
     else: track = 0
 
+    global opponent
+    opponent = [3-track, 5-track, 7-track, 9-track, 11-track, 13-track, 15-track]
+
+    global friendly
+    friendly = [2+track, 4+track, 6+track, 8+track, 10+track, 12+track, 14+track]
+
     king_r = 0
     king_c = 0
     for i in range(8):
@@ -135,13 +144,13 @@ def makeMove(currentState, currentRemark, timelimit=10):
                 king_r = i
                 king_c = j
 
-    val = kingCheckAttack(newState, king_r, king_c, track)
-    if val:
+    attackDir = kingCheckAttack(newState, king_r, king_c, track)
+    if attackDir:
         states = kingAttackMove(newState, king_r, king_c, 12+track)
         for state in states:
             if not kingCheckAttack(state[1], king_r, king_c, track):
                 return [[move, newState], newRemark] #____________________________________________DO IT
-        kingMinionMove(newState, king_r, king_c, val, track)
+        return kingMinionMove(newState, king_r, king_c, attackDir, track) #_______________________
 
     else: generateStates(newState, timelimit)
 
@@ -156,6 +165,8 @@ def makeMove(currentState, currentRemark, timelimit=10):
 
 
     newRemark = remark()
+    global moveCount
+    moveCount += 1
 
     return [[move, newState], newRemark]
 
@@ -184,11 +195,9 @@ def generateStates(currentState, time):
                 # the enemy freezer; map all your frozen pieces
                 movedirection = [[0, 1], [-1, 0], [0, -1], [1, 0], [-1, 1], [-1, -1], [1, -1], [1, 1]]
                 for k in movedirection:
-                    try:
-                        if currentState.board[i+k[0]][j+k[1]] % 2 == track:
+                    if i+k[0] in range(8) and j+k[1] in range (8):
+                        if currentState.board[i+k[0]][j+k[1]] in friendly:
                             frozenPieces.append(currentState.board[i+k[0]][j+k[1]])
-                    except:
-                        dummy = None
 
             if item == (14+track):
                 # My freezer to check whether it has an imitator next to it
@@ -198,22 +207,18 @@ def generateStates(currentState, time):
                 imiC = 0
 
                 for k in movedirection:
-                    try:
+                    if i+k[0] in range(8) and j+k[1] in range (8):
                         # found freezer
                         if currentState.board[i+k[0]][j+k[1]] == (9-track):
                             Freezerfreeze = True
                             imiR = i+k[0]
                             imiC = j+k[1]
-                    except:
-                        dummy = None
 
                 if Freezerfreeze:
                     for k in movedirection:
-                        try:
-                            if currentState.board[imiR+k[0]][imiC+k[1]]%2 == track:
+                        if imiR+k[0] in range(8) and imiC+k[1] in range(8):
+                            if currentState.board[imiR+k[0]][imiC+k[1]] in friendly:
                                 frozenPieces.append(currentState.board[imiR+k[0]][imiC+k[1]])
-                        except:
-                            dummy = None
 
             if item == (12+track):
                 #My army's king
@@ -229,7 +234,7 @@ def generateStates(currentState, time):
     for i in range(8):
         for j in range(8):
             piece = currentState.board[i][j]
-            if piece not in frozenPieces and piece != 0 and piece%2 == track:
+            if piece not in frozenPieces and piece in friendly:
                 if piece == 2 or piece == 3: #Pincer - Done
                     pincerMoves(currentState, i, j, piece, track)
                 elif piece == 4 or piece == 5: #Coordinator - Done
@@ -237,7 +242,7 @@ def generateStates(currentState, time):
                 elif piece == 6 or piece == 7: #Leaper - Done
                     leaperMoves(currentState, i, j, piece, track)
                 elif piece == 8 or piece == 9: #Imitator - Done
-                    imitatorMoves(currentState, i, j, kingR, kingC, piece.lower())
+                    imitatorMoves(currentState, i, j, kingR, kingC, piece, track)
                 elif piece == 10 or piece == 11: #Withdrawer - Done
                     withdrawerMoves(currentState, i, j, piece, track)
                 elif piece == 12 or piece == 13: #King - Done
@@ -251,44 +256,37 @@ def pincerMoves(currentState, r, c, piece, track):
     for k in movedirection:
         temp_r = r + k[0]
         temp_c = c + k[1]
-        try:
-            while currentState.board[temp_r][temp_c] == 0:
-                newState = BC.BC_state(currentState.board)
-                newState.board[temp_r][temp_c] = piece
-                newState.board[r][c] = 0
-                neighbour = [dir for dir in movedirection if dir != k]
-                capturePiece = []
-                captureR = []
-                captureC = []
-                capture = False
-                for n in neighbour:
-                    nR = temp_r + n[0]
-                    nC = temp_c + n[1]
-                    try:
-                        if currentState.board[nR][nC]%2 != track:
-                            if currentState.board[nR+n[0]][nC+n[1]]%2 == track:
-                                capturePiece.append(currentState.board[temp_r][temp_c])
-                                captureR.append(temp_r)
-                                captureC.append(temp_c)
-                                capture = True
-                    except:
-                        dummy = None
-                if capture:
-                    # pincer capture moves
-                    count = 0
-                    for i in capturePiece:
-                        newState.board[captureR[count]][captureC[count]] = 0
-                        count += 1
-                    captureList.append([[r,c,temp_r,temp_c],newState])
-                else:
-                    # pincer non-capture moves
-                    movesList.append([[r,c,temp_r,temp_c],newState])
+        while temp_r in range(8) and temp_c in range(8) and currentState.board[temp_r][temp_c] == 0:
+            newState = BC.BC_state(currentState.board)
+            newState.board[temp_r][temp_c] = piece
+            newState.board[r][c] = 0
+            neighbour = [dir for dir in movedirection if dir != k]
+            capturePiece = []
+            captureR = []
+            captureC = []
+            capture = False
+            for n in neighbour:
+                nR = temp_r + n[0]
+                nC = temp_c + n[1]
+                if nR in range(8) and nC in range(8) and currentState.board[nR][nC] in opponent:
+                    if nR+n[0] in range(8) and nC+n[1] in range(8) and currentState.board[nR+n[0]][nC+n[1]] in friendly:
+                        capturePiece.append(currentState.board[temp_r][temp_c])
+                        captureR.append(temp_r)
+                        captureC.append(temp_c)
+                        capture = True
+            if capture:
+                # pincer capture moves
+                count = 0
+                for i in capturePiece:
+                    newState.board[captureR[count]][captureC[count]] = 0
+                    count += 1
+                captureList.append([[r,c,temp_r,temp_c],newState])
+            else:
+                # pincer non-capture moves
+                movesList.append([[r,c,temp_r,temp_c],newState])
 
-                temp_r += k[0]
-                temp_c += k[1]
-        except:
-            dummy = None
-
+            temp_r += k[0]
+            temp_c += k[1]
 
 def withdrawerMoves(currentState, r, c, piece, track):
     movedirection = [[0, 1], [-1, 0], [0, -1], [1, 0], [-1, 1], [-1, -1], [1, -1], [1, 1]]
@@ -299,28 +297,24 @@ def withdrawerMoves(currentState, r, c, piece, track):
         temp_r = r
         temp_c = c
 
-        try:
-            if currentState.board[temp_r+k[0]][temp_c+k[1]]%2 != track:
+        if temp_r+k[0] in range(8) and temp_c+k[1] in range(8):
+            if currentState.board[temp_r+k[0]][temp_c+k[1]] in opponent:
                 capture = False
                 temp_r -= k[0]
                 temp_c -= k[1]
-                try:
-                    while currentState.board[temp_r][temp_c] == 0:
-                        newState = BC.BC_state(currentState.board)
-                        newState.board[temp_r][temp_c] = piece
-                        newState.board[r][c] = 0
-                        newState.board[r+k[0]][c+k[1]] = 0
-                        captureList.append([r,c,temp_r,temp_c],newState)
-                        capture = True
-                        temp_c -= k[1]
-                        temp_r -= k[0]
-                except:
-                    dummy = None
+                while temp_r in range(8) and temp_c in range(8) and currentState.board[temp_r][temp_c] == 0:
+                    newState = BC.BC_state(currentState.board)
+                    newState.board[temp_r][temp_c] = piece
+                    newState.board[r][c] = 0
+                    newState.board[r+k[0]][c+k[1]] = 0
+                    captureList.append([r,c,temp_r,temp_c],newState)
+                    capture = True
+                    temp_c -= k[1]
+                    temp_r -= k[0]
+
                 if capture:
                     captureMoves.append([k[0], k[1]])
                     captureMoves.append([-k[0],-k[1]])
-        except:
-            dummy = None
 
     # withdrawer non-capture moves
     noncaptureMoves = [k for k in movedirection if k not in captureMoves]
@@ -337,18 +331,18 @@ def leaperMoves(currentState, r, c, piece, track):
         final = move(currentState, r, c, k, piece)
 
         # leaper Capture moves
-        temp_r = final[0]+k[0]
-        temp_c = final[1]+k[1]
-        try:
-            if currentState.board[temp_r][temp_c]%2 != track:
-                if currentState.board[temp_r + k[0]][temp_c + k[1]] == 0:
-                    newState = BC.BC_state(currentState.board)
-                    newState.board[temp_r][temp_c] = 0
-                    newState.board[r][c] = 0
-                    newState.board[temp_r+k[0]][temp_c+k[1]] = piece
-                    captureList.append([[r,c,temp_r+k[0],temp_c+k[1]], newState])
-        except:
-            dummy = None
+        if final:
+            temp_r = final[0]+k[0]
+            temp_c = final[1]+k[1]
+            if temp_r in range(8) and temp_c in range(8) and currentState.board[temp_r][temp_c] in opponent:
+                if temp_r+k[0] in range(8) and temp_c+k[1] in range(8):
+                    if currentState.board[temp_r + k[0]][temp_c + k[1]] == 0:
+                        newState = BC.BC_state(currentState.board)
+                        newState.board[temp_r][temp_c] = 0
+                        newState.board[r][c] = 0
+                        newState.board[temp_r+k[0]][temp_c+k[1]] = piece
+                        captureList.append([[r,c,temp_r+k[0],temp_c+k[1]], newState])
+
 
 def coordinatorMoves(currentState, r, c, rk, ck, piece, track):
     movedirection = [[0, 1], [-1, 0], [0, -1], [1, 0], [-1, 1], [-1, -1], [1, -1], [1, 1]]
@@ -356,31 +350,28 @@ def coordinatorMoves(currentState, r, c, rk, ck, piece, track):
     for k in movedirection:
         temp_r = r + k[0]
         temp_c = c + k[1]
-        try:
-            while currentState.board[temp_r][temp_c] == 0:
-                newState = BC.BC_state(currentState.board)
-                newState.board[temp_r][temp_c] = piece
-                newState.board[r][c] = 0
-                if temp_r == rk or temp_c == ck:
-                    movesList.append([[r,c,temp_r,temp_c],newState])
+        while temp_r in range(8) and temp_c in range(8) and currentState.board[temp_r][temp_c] == 0:
+            newState = BC.BC_state(currentState.board)
+            newState.board[temp_r][temp_c] = piece
+            newState.board[r][c] = 0
+            if temp_r == rk or temp_c == ck:
+                movesList.append([[r,c,temp_r,temp_c],newState])
+            else:
+                if newState.board[temp_r][ck] in opponent and newState.board[rk][temp_c] in opponent:
+                    newState.board[temp_r][ck] = 0
+                    newState.board[rk][temp_c] = 0
+                    captureList.append([[r,c,temp_r,temp_c],newState])
+                elif newState.board[temp_r][ck] in opponent:
+                    newState.board[temp_r][ck] = 0
+                    captureList.append([[r,c,temp_r,temp_c],newState])
+                elif newState.board[rk][temp_c] in opponent:
+                    newState.board[rk][temp_c] = 0
+                    captureList.append([[r,c,temp_r,temp_c],newState])
                 else:
-                    if newState.board[temp_r][ck]%2 != track and newState.board[rk][temp_c]%2 != track:
-                        newState.board[temp_r][ck] = 0
-                        newState.board[rk][temp_c] = 0
-                        captureList.append([[r,c,temp_r,temp_c],newState])
-                    elif newState.board[temp_r][ck] % 2 != track:
-                        newState.board[temp_r][ck] = 0
-                        captureList.append([[r,c,temp_r,temp_c],newState])
-                    elif newState.board[rk][temp_c]%2 != track:
-                        newState.board[rk][temp_c] = 0
-                        captureList.append([[r,c,temp_r,temp_c],newState])
-                    else:
-                        movesList.append([[r,c,temp_r,temp_c],newState])
+                    movesList.append([[r,c,temp_r,temp_c],newState])
 
-                temp_r += k[0]
-                temp_c += k[1]
-        except:
-            dummy = None
+            temp_r += k[0]
+            temp_c += k[1]
 
 
 def kingMoves(currentState, r, c, rcord, ccord, piece, track):
@@ -389,30 +380,27 @@ def kingMoves(currentState, r, c, rcord, ccord, piece, track):
     for k in movedirection:
         temp_r = r +k[0]
         temp_c = c +k[1]
-        try:
+        if temp_r in range(8) and temp_c in range(8):
             newState = BC.BC_state(currentState.board)
             newState.board[temp_r][temp_c] = piece
             newState.board[r][c] = 0
 
-            if currentState.board[temp_r][temp_c]%2 != track:
+            if currentState.board[temp_r][temp_c] in opponent:
                 captureList.append([[r,c,temp_r,temp_c],newState])
             elif currentState.board[temp_r][temp_c] == 0:
                 #captures with coordinator
-                if newState.board[temp_r][ccord] % 2 != track and newState.board[rcord][temp_c] % 2 != track:
+                if newState.board[temp_r][ccord] in opponent and newState.board[rcord][temp_c] in opponent:
                     newState.board[temp_r][ccord] = 0
                     newState.board[rcord][temp_c] = 0
                     captureList.append([[r, c, temp_r, temp_c], newState])
-                elif newState.board[temp_r][ccord] % 2 != track:
+                elif newState.board[temp_r][ccord] in opponent:
                     newState.board[temp_r][ccord] = 0
                     captureList.append([[r, c, temp_r, temp_c], newState])
-                elif newState.board[rcord][temp_c] % 2 != track:
+                elif newState.board[rcord][temp_c] in opponent:
                     newState.board[rcord][temp_c] = 0
                     captureList.append([[r, c, temp_r, temp_c], newState])
                 else:
                     movesList.append([[r, c, temp_r, temp_c], newState])
-
-        except:
-            dummy = None
 
 
 def freezerMoves(currentState, r, c, piece):
@@ -429,7 +417,7 @@ def imitatorMoves(currentState, r, c, rk, ck, piece, track):
     for k in movedirection:
         newState = BC.BC_state(currentState.board)
         newState.board[r][c] = 0
-        try:
+        if r+k[0] in range(8) and c+k[1] in range(8):
             enemy = currentState.board[r+k[0]][c+k[1]]
             # King capture
             if enemy == (13 - track):
@@ -438,53 +426,48 @@ def imitatorMoves(currentState, r, c, rk, ck, piece, track):
 
             # Withdrawer capture
             if enemy == (11-track):
-                try:
-                    temp_r = r-k[0]
-                    temp_c = r-k[1]
-                    while currentState.board[temp_r][temp_c] == 0:
-                        newState.board[temp_r][temp_c] = piece
-                        newState.board[r+k[0]][c+k[1]] = 0
-                        captureList.append([[r, c, r-k[0], c-k[1]], newState])
-                        temp_r -= k[0]
-                        temp_c -= k[1]
-                except:
-                    dummy = None
+                temp_r = r-k[0]
+                temp_c = r-k[1]
+                while temp_r in range(8) and temp_c in range(8) and currentState.board[temp_r][temp_c] == 0:
+                    newState.board[temp_r][temp_c] = piece
+                    newState.board[r+k[0]][c+k[1]] = 0
+                    captureList.append([[r, c, r-k[0], c-k[1]], newState])
+                    temp_r -= k[0]
+                    temp_c -= k[1]
 
             # Coordinator capture
             if enemy == (5-track):
                 if r+k[0] == rk and rk != r:
-                    if r in range(8) and c+k[1] in range(8):
-                        if currentState.board[r][c+k[1]] == 0:
-                            newState.board[r][c+k[1]] = piece
-                            newState.board[r + k[0]][c + k[1]] = 0
-                            captureList.append([[r, c, r, c + k[1]], newState])
+                    if currentState.board[r][c+k[1]] == 0:
+                        newState.board[r][c+k[1]] = piece
+                        newState.board[r + k[0]][c + k[1]] = 0
+                        captureList.append([[r, c, r, c + k[1]], newState])
 
                 if r+k[0] == rk and c+k[1] == c:
-                    if r+1 in range(8) and c in range(8):
+                    if r+1 in range(8):
                         if currentState.board[r+1][c] == 0:
                             newState.board[r+1][c] = piece
                             newState.board[r + k[0]][c + k[1]] = 0
                             captureList.append([[r, c, r+1, c], newState])
-                    if r-1 in range(8) and c in range(8):
+                    if r-1 in range(8):
                         if currentState.board[r-1][c] == 0:
                             newState.board[r-1][c] = piece
                             newState.board[r + k[0]][c + k[1]] = 0
                             captureList.append([[r, c, r-1, c], newState])
 
                 if c+k[0] == ck and ck != c:
-                    if r+k[0] in range(8) and c in range(8):
-                        if currentState.board[r+k[0]][c] == 0:
-                            newState.board[r+k[0]][c] = piece
-                            newState.board[r + k[0]][c + k[1]] = 0
-                            captureList.append([[r, c, r+k[0], c], newState])
+                    if currentState.board[r+k[0]][c] == 0:
+                        newState.board[r+k[0]][c] = piece
+                        newState.board[r + k[0]][c + k[1]] = 0
+                        captureList.append([[r, c, r+k[0], c], newState])
 
                 if c+k[0] == ck and r+k[0] == r:
-                    if r in range(8) and c+1 in range(8):
+                    if c+1 in range(8):
                         if currentState.board[r][c+1] == 0:
                             newState.board[r][c+1] = piece
                             newState.board[r + k[0]][c + k[1]] = 0
                             captureList.append([[r, c, r, c+1], newState])
-                    if r in range(8) and c-1 in range(8):
+                    if c-1 in range(8):
                         if currentState.board[r][c-1] == 0:
                             newState.board[r][c-1] = piece
                             newState.board[r + k[0]][c + k[1]] = 0
@@ -494,44 +477,37 @@ def imitatorMoves(currentState, r, c, rk, ck, piece, track):
             if enemy == (7 - track):
                 temp_r = r+k[0]+k[0]
                 temp_c= c+k[1]+k[1]
-                if temp_r in range(8) and temp_c in range(8):
-                    if currentState.board[temp_r][temp_c] == 0:
-                        newState.board[temp_r][temp_c] = piece
-                        newState.board[r+k[0]][c+k[1]] = 0
-                        captureList.append([[r, c, temp_r, temp_c], newState])
-        except:
-            dummy = None
-
+                if temp_r in range(8) and temp_c in range(8) and currentState.board[temp_r][temp_c] == 0:
+                    newState.board[temp_r][temp_c] = piece
+                    newState.board[r+k[0]][c+k[1]] = 0
+                    captureList.append([[r, c, temp_r, temp_c], newState])
 
 
     # Dynamic analysis
     for k in movedirection:
         temp_r = r + k[0]
         temp_c = c + k[1]
-        try:
-            newState = BC.BC_state(currentState.board)
-            newState.board[r][c] = 0
-            while currentState.board[temp_r][temp_c] == 0:
-                cap = imitatorDEval(currentState, temp_r, temp_c, rk, ck, track)
-                if len(cap) == 0:
-                    newState.board[temp_r][temp_c] = piece
-                    movesList.append([[r, c, temp_r, temp_c], newState])
-                else:
-                    for li in cap:
-                        newState.board[li[0]][li[1]] = 0
-                    newState.board[temp_r][temp_c] = piece
-                    captureList.append([[r, c, temp_r, temp_c], newState])
-                temp_r += k[0]
-                temp_c += k[1]
+        newState = BC.BC_state(currentState.board)
+        newState.board[r][c] = 0
+        while temp_r in range(8) and temp_c in range(8) and currentState.board[temp_r][temp_c] == 0:
+            cap = imitatorDEval(currentState, temp_r, temp_c, rk, ck, track)
+            if len(cap) == 0:
+                newState.board[temp_r][temp_c] = piece
+                movesList.append([[r, c, temp_r, temp_c], newState])
+            else:
+                for li in cap:
+                    newState.board[li[0]][li[1]] = 0
+                newState.board[temp_r][temp_c] = piece
+                captureList.append([[r, c, temp_r, temp_c], newState])
+            temp_r += k[0]
+            temp_c += k[1]
 
-            # Leaper capture
-            if currentState.board[temp_r][temp_c] == (7 - track):
-                if currentState.board[temp_r+k[0]][temp_c+k[1]] == 0:
-                    newState.board[temp_r][temp_c] = 0
-                    newState.board[temp_r+k[0]][temp_c+k[1]] = piece
-                    captureList.append([[r, c, temp_r, temp_c], newState])
-        except:
-            dummy = None
+        # Leaper capture
+        if currentState.board[temp_r][temp_c] == (7 - track):
+            if temp_r+k[0] in range(8) and temp_c+k[1] in range(8) and currentState.board[temp_r+k[0]][temp_c+k[1]] == 0:
+                newState.board[temp_r][temp_c] = 0
+                newState.board[temp_r+k[0]][temp_c+k[1]] = piece
+                captureList.append([[r, c, temp_r, temp_c], newState])
 
 
 def imitatorDEval(currentState, r, c, rk, ck, track):
@@ -540,80 +516,66 @@ def imitatorDEval(currentState, r, c, rk, ck, track):
     cList = []
 
     for k in movedirection:
-        try:
-            enemy = currentState.board[r + k[0]][c + k[1]]
+        temp_r = r+k[0]
+        temp_c = c+k[1]
+        if temp_r in range(8) and temp_c in range(8):
+            enemy = currentState.board[temp_r][temp_c]
             # Pincer capture
             if enemy == (3-track) and k in movedirection[:4]:
-                    try:
-                        if currentState.board[r+k[0]+k[0]][c+k[1]+k[1]]%2 == track:
-                            cList.append([r + k[0],c + k[1]])
-                    except:
-                        dummy = None
+                if temp_r+k[0] in range(8) and temp_c+k[1] in range(8) and currentState.board[temp_r+k[0]][temp_c+k[1]] in friendly:
+                    cList.append([temp_r,temp_c])
 
             # Coordinate capture
             if enemy == (5-track) and (r != rk or c != ck):
                 if (r+k[0],c+k[1]) in [(r,ck),(rk,c)]:
                     cList.append([r + k[0],c + k[1]])
-        except:
-            dummy = None
-
     return cList
 
 
 def move(currentState, r, c, k, item):
-    temp_r = r + k[0]
-    temp_c = c + k[1]
-    try:
-        while currentState.board[temp_r][temp_c] == 0:
-            newState = BC.BC_state(currentState.board)
-            newState.board[temp_r][temp_c] = item
-            newState.board[r][c] = 0
-            movesList.append([[r,c,temp_r,temp_c],newState])
-            temp_r += k[0]
-            temp_c += k[1]
-    except:
-        dummy = None
-
-    return [temp_r-k[0], temp_c-k[1]]
-
-
-""" TO BE MOVED TO STATIC EVAL"""
-
-
-
+    temp_r = r+k[0]
+    temp_c = c+k[1]
+    while temp_r in range(8) and temp_c in range(8) and currentState.board[temp_r][temp_c] == 0:
+        newState = BC.BC_state(currentState.board)
+        newState.board[temp_r][temp_c] = item
+        newState.board[r][c] = 0
+        movesList.append([[r,c,temp_r,temp_c],newState])
+        temp_r += k[0]
+        temp_c += k[1]
+    if temp_r in range(8) and temp_c in range(8):
+        return [temp_r-k[0], temp_c-k[1]]
+    else: return None
 
 
 def kingCheckAttack(state, r, c, track):
     movedirection = [[0, 1], [-1, 0], [0, -1], [1, 0], [-1, 1], [-1, -1], [1, -1], [1, 1]]
 
     for k in movedirection:
-        try:
-            adj = state.board[r+k[0]][c+k[1]]
-            if adj == (3-track): #Pincer
+        temp_r = r + k[0]
+        temp_c = c + k[1]
+        if temp_r in range(8) and temp_c in range(8):
+            adj = state.board[temp_r][temp_c]
+            if adj == (9-track): #Imitator
                 return k
             if adj == (11-track): #Withdrawer
                 return k
-            if adj == (9-track): #Imitator
+            if adj == (3-track): #Pincer
                 return k
-        except:
-             dummy = None
-
-        temp_r = r+k[0]
-        temp_c = c+k[1]
 
         while temp_r in range(8) and temp_c in range(8) and state.board[temp_r][temp_c] == 0:
-            temp_r += r + k[0]
-            temp_c += c + k[1]
+            temp_r += k[0]
+            temp_c += k[1]
 
-        adj = state.board[temp_r][temp_c]
-        if adj == (3-track) and k in movedirection[:4]: #Pincer
-            return k
-        if adj == (7-track): #Leaper
-            return k
-        if adj == (13-track) or adj == (5-track): #King-Coordinator
-            return k
-        if adj == (15-track): #Freezer
-            return k
+        if temp_r in range(8) and temp_c in range(8):
+            adj = state.board[temp_r][temp_c]
+            if adj == (7-track): #Leaper
+                return k
+            if adj == (3-track) and k in movedirection[:4]: #Pincer
+                return k
+            if adj == (13-track) or adj == (5-track): #King-Coordinator
+                return k
+            if adj == (15-track): #Freezer
+                return k
     return None
 
 
@@ -630,23 +592,25 @@ def kingAttackMove(state, r, c, piece):
             newState.board[r][c] = 0
             newState.board[temp_r][temp_c] = piece
             returnList.append([[r,c,temp_r,temp_c],newState])
-
     return returnList
+
 
 def kingMinionMove(state, r, c, KK, track):
     movedirection = [[0, 1], [-1, 0], [0, -1], [1, 0]]
     closures = []
     for i in range(3):
-        if r+(KK[0]*(i+1)) in range(8) and c+(KK[1]*(i+1)) in range(8):
+        temp_r = r+(KK[0]*(i+1))
+        temp_c = c+(KK[1]*(i+1))
+        if temp_r in range(8) and temp_c in range(8) and state.board[temp_r][temp_c] == 0:
             closures.append((r+(KK[0]*(i+1)),c+(KK[1]*(i+1))))
 
     for i in range(8):
         for j in range(8):
             piece = state.board[i][j]
-            if piece == (2+track) and KK in movedirection:
+            if piece == (2+track) and KK in movedirection: # pincer
                 move = tryMove(state,i,j,closures,piece)
                 if move: return move
-            if piece == (4+track) or piece == (6+track) or piece == (8+track) or piece == (10+track) or piece == (14+track):
+            if piece in friendly[1:]: # all other pieces
                 move = tryMove(state,i,j,closures, piece)
                 if move: return move
 
@@ -704,8 +668,11 @@ def prepare(player2Nickname, playWhite = False):
     global colourtrack
     global captureList
     global movesList
+    global moveCount
+
     captureList = []
     movesList = []
+    moveCount = 0
 
     if (playWhite == True):
         colourtrack = 1
@@ -717,24 +684,6 @@ def prepare(player2Nickname, playWhite = False):
 
 
 def basicStaticEval(state):
-    """
-    Use the simple method for state evaluation described in the spec.
-    This is typically used in parameterized_minimax calls to verify
-    that minimax and alpha-beta pruning work correctly.
-    :param state:
-    :return:
-    """
-    """
-    When useBasicStaticEval is true, you'll evaluate leaf nodes of your search tree with your own implementation of the 
-    following function: White pincers are worth 1, the White king is worth 100, and all other White pieces are worth 2. 
-    Black pieces have the same values as their white counterparts, but negative. When useBasicStaticEval is False, you 
-    should use your own, more discriminating function. The value of the function is the sum of the values of the pieces 
-    on the board in the given state.
-    """
-    # iterate through the whole thing. Sum up
-    # if it's white, negative of the same. P, p = 1
-    # K, k = 100; All other white are 2 Black's the same, but in negative.
-
     totalEval = 0
 
     for i in range(8):
@@ -761,20 +710,14 @@ def basicStaticEval(state):
 
 
 def remark():
-    remarks = ["Your turn!", "Take that!", "Try to beat that!", "Think well before you move", "Best is yet to come!", "Come on you!"]
+    remarks = ["Your turn!", "Take that!", "Try to beat that!", "Think well before you move", "Best is yet to come!", "Come on!", "Lets get moving,"
+                "Here you go!"]
     return random.choice(remarks)
 
 
 def staticEval(state):
-    """
-    Compute a more thorough static evaluation of the given state.
-    This is intended for normal competitive play.  How you design this
-    function could have a significant impact on your player's ability
-    to win games.
 
-    :param state:
-    :return:
-    """
+
 
 
     for i in range(8):
@@ -784,3 +727,5 @@ def staticEval(state):
 
 
 
+
+# WRITE FOR COORDINATOR, WITHDRAWER, IMITATOR
