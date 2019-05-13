@@ -37,6 +37,7 @@ CODE_TO_INIT = {0:'-',2:'p',3:'P',4:'c',5:'C',6:'l',7:'L',8:'i',9:'I',
 pieceValue = {0: 0, 2: -100, 3: 100, 4: -500, 5: 500, 6: 500, 7: -500, 8: -900, 9: 900, 10: -500,
               11: 500, 12: 100000, 13: -100000, 14: -500, 15: 500}
 
+WHITE = 1
 
 def parameterized_minimax(currentState, alphaBeta=False, ply=3, \
                           useBasicStaticEval=True, useZobristHashing=False):
@@ -496,6 +497,13 @@ def staticEval(state):
 
     for i in range(0, 8):
         for j in range(0, 8):
+            # if the input p = 2, 3
+            # then state.board of whatever, send in that.
+            #
+
+            if state.board[i][j] == 2:
+                state.whoseturn == WHITE
+
             if state.board[i][j] == 'p':
                 # mobility check
                 # King Safety Check
@@ -515,7 +523,6 @@ def pincerMobility(state, k):
             count += 1
     return count*5
 
-
 def pincerKill(state, k):
     board = state.board
 
@@ -529,6 +536,11 @@ def pincerKill(state, k):
         opponentPieces = [3, 5, 7, 9, 11, 13, 15]
 
     for s in movedirection:
+
+        count = 0
+        networth = 0
+        threatworth = 0
+        threatcount = 0
 
         t = k
 
@@ -550,7 +562,6 @@ def pincerKill(state, k):
             elif t[1] == -1:
                 t[1] += 1
 
-
             if board[t[0]][t[1]] in opponentPieces and t[0] in range(1, 7) and t[1] in range(1, 7):
                 t[0] += t[0]
                 t[1] += t[1]
@@ -559,13 +570,17 @@ def pincerKill(state, k):
 
                     count += 1
 
-            if t[0] in range(1,7) and t[1] in range(1,7) and board[t[0]][t[1]] in opponentPieces:
-                t[0] += t[0]
-                t[1] += t[1]
-                if board[t[0]][t[1]] not in opponentPieces and board[t[0]][t[1]] != 0:
+            if t[0] in range(1,7) and t[1] in range(1,7):
+                if board[t[0]][t[1]] in opponentPieces:
+                    t[0] += t[0]
+                    t[1] += t[1]
+                else:
+                    #something else
+
+                # if board[t[0]][t[1]] not in opponentPieces and board[t[0]][t[1]] != 0:
                     # call in the value of the piece. Add
 
-                    count += 1
+                    # count += 1
 
             # this can't be generalised, so split into 4
             # check if the other piece is opponent, if yes jump 1 step and check if its our piece
@@ -605,3 +620,103 @@ def pincerKill(state, k):
 
 
     return count # count times some factor
+
+def freezerKill(state, k):
+    board = state.board
+
+    movedirection = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [-1, 1], [1, -1]]
+
+    if state.whoseturn == WHITE:
+        opponentPieces = [2, 4, 6, 8, 10, 12, 14]
+    else:
+        opponentPieces = [3, 5, 7, 9, 11, 13, 15]
+
+    count = 0
+    networth = 0
+    threatworth = 0
+    threatcount = 0
+
+    for s in movedirection:
+        t = k
+        t[0] += s[0]
+        t[1] += s[1]
+        while (t[0] in range(0, 8) and t[1] in range(0, 8) and board[t[0]][t[1]] != 0):
+            if board[t[0]][t[1]] in opponentPieces:
+                # do something
+                networth = pieceValue.get(board[t[0]][t[1]])
+                count += 1
+            else:
+                # evaluating the threat of the other person.
+                # how do we do this?
+                threatworth = pieceValue.get(board[t[0]][t[1]])
+                threatcount += 1
+    # the more things we freeze, the better off we are
+
+    return (networth*count + threatworth*threatcount)/4
+
+
+def Kingcheck(state, k):
+    # If king is around  a couple of different folks,
+    board = state.board
+    movedirection = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [-1, 1], [1, -1]]
+
+    if state.whoseturn == WHITE:
+        opponentPieces = [2, 4, 6, 8, 10, 12, 14]
+    else:
+        opponentPieces = [3, 5, 7, 9, 11, 13, 15]
+
+    count = 0
+
+    for s in movedirection:
+        t = k
+        t[0] += s[0]
+        t[1] += s[1]
+        while (t[0] in range(0, 8) and t[1] in range(0, 8) and board[t[0]][t[1]] != 0):
+            if board[t[0]][t[1]] in opponentPieces:
+                if pieceValue.get(board[t[0]][t[1]]) < 0: count -= 800
+                else: count += 800
+            else:
+                if pieceValue.get(board[t[0]][t[1]] < 0):
+                    count -= 800
+                else:
+                    count += 800
+
+    return count
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
