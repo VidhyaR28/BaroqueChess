@@ -79,7 +79,7 @@ def miniMax(state, depth, a, b, giventime):
     global statesExpanded
     global numberEvals
     global cutoff
-    if (depth == 0 or giventime <= 1.0) and iterDepthTrack >= 1:
+    if depth == 0 or giventime <= 1.0:
         numberEvals += 1
         static = staticEval(state)
         return [static, None]
@@ -682,6 +682,9 @@ def prepare(player2Nickname, playWhite=False):
     movesList = []
     moveCount = 0
     chosenMove = [0, 0, 0, 0]
+
+
+
 
     if (playWhite == True):
         colourtrack = 1

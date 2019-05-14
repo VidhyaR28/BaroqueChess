@@ -78,7 +78,7 @@ def miniMax(state, depth, a, b): # , inputtime):
     global cutoff
     global finaltime
 
-    if depth == 0 or inputtime <= 1.0:
+    if depth == 0 or inputtime <= 0.75:
         numberEvals += 1
         static = staticEval(state)
         return [static, None]
