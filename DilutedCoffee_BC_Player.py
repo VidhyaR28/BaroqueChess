@@ -939,7 +939,6 @@ def kingCheck(state, k):
                 else:
                     count += 800
 
-
     return count
 
 
@@ -1006,7 +1005,7 @@ def withdrawerKill(state, k):
         t[0] += s[0]
         t[1] += s[1]
         if t[0] in range(0, 8) and t[1] in range(0, 8):
-            
+
             if board[t[0]][t[1]] in opponentPieces:
                 if (t[0] + s[0]) in range(0, 8) and (t[1] + s[1]) in range(0, 8):
                     if board[t[0] + s[0]][t[1] + s[1]]:
