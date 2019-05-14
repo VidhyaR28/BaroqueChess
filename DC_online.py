@@ -35,6 +35,7 @@ global captureList
 global opponent
 global friendly
 global moveCount
+global inputtime
 
 CODE_TO_INIT = {0: '-', 2: 'p', 3: 'P', 4: 'c', 5: 'C', 6: 'l', 7: 'L', 8: 'i', 9: 'I',
                 10: 'w', 11: 'W', 12: 'k', 13: 'K', 14: 'f', 15: 'F'}
@@ -56,11 +57,13 @@ def parameterized_minimax(currentState, alphaBeta=False, ply=3, useBasicStaticEv
     global numberEvals
     global cutoff
     global chosenMove
+    global inputtime
+
     statesExpanded = 0
     numberEvals = 0
     cutoff = 0
 
-    chosen = miniMax(currentState, ply, -100000, 100000)
+    chosen = miniMax(currentState, ply, -100000, 100000, 0.9*inputtime)
     # [piece, (r,c), (temp_r,temp_c)] is the format for chosenMove
     chosenMove = chosen[1]
     dict = {'CURRENT_STATE_STATIC_VAL': chosen[0], 'N_STATES_EXPANDED': statesExpanded, 'N_STATIC_EVALS': numberEvals,
@@ -70,11 +73,13 @@ def parameterized_minimax(currentState, alphaBeta=False, ply=3, useBasicStaticEv
 
 # the input is just a [state]
 # the outout is formated as [staticValue, move]
-def miniMax(state, depth, a, b):
+def miniMax(state, depth, a, b, giventime):
+    global inputtime
+    global iterDepthTrack
     global statesExpanded
     global numberEvals
     global cutoff
-    if depth == 0:
+    if (depth == 0 or giventime <= 1.0) and iterDepthTrack >= 1:
         numberEvals += 1
         static = staticEval(state)
         return [static, None]
@@ -87,7 +92,7 @@ def miniMax(state, depth, a, b):
         Bstate = None  # [moves]
         for child in moves:
             statesExpanded += 1
-            function = miniMax(statify(state, child, track), depth - 1, a, b)
+            function = miniMax(statify(state, child, track), depth - 1, a, b, 0.9*inputtime)
             if function[0] > val:
                 Bstate = child
                 val = function[0]
@@ -102,7 +107,7 @@ def miniMax(state, depth, a, b):
         Bstate = None
         for child in moves:
             statesExpanded += 1
-            function = miniMax(statify(state, child, track), depth - 1, a, b)
+            function = miniMax(statify(state, child, track), depth - 1, a, b, 0.9*inputtime)
             if function[0] < val:
                 Bstate = child
                 val = function[0]
@@ -115,7 +120,9 @@ def miniMax(state, depth, a, b):
 
 
 def makeMove(currentState, currentRemark, timelimit=10):
+    global inputtime
     # TIMER COMPONENT
+    start_time = time.time()
 
     track = 0
     if currentState.whose_move == 1:
@@ -157,8 +164,10 @@ def makeMove(currentState, currentRemark, timelimit=10):
 
     # IDDFS
     for depth in range(15):
+        inputtime = start_time + timelimit - time.time()  # this will give us the time left.
         parameterized_minimax(currentState, True, depth, False, False)
-        if depth == 2:  # REPLACE THIS - keep track of the timer to timeout here keep 0.02 secconds to compute the following
+        # if inputtime <= 1.5:
+        if depth == 4:  # REPLACE THIS - keep track of the timer to timeout here keep 0.02 secconds to compute the following
             global chosenMove
             outState = statify(currentState, chosenMove, track)
             outMove = stringify(chosenMove)
@@ -668,6 +677,7 @@ def prepare(player2Nickname, playWhite=False):
     global movesList
     global moveCount
     global chosenMove
+    global inputtime
     captureList = []
     movesList = []
     moveCount = 0
