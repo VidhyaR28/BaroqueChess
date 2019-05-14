@@ -9,10 +9,9 @@ VERSION = '1.0-BETA'
 
 import sys
 import BC_checker   # API for accessing web-based move validation.
-TIME_PER_MOVE = 5   # Default time limit is one second.
+TIME_PER_MOVE = 1   # Default time limit is one second.
 TURN_LIMIT = 5      # Good for testing.
-
-# TURN_LIMIT = 100 # Terminates runaway games.
+#TURN_LIMIT = 100 # Terminates runaway games.
 
 # Get names of players and time limit from the command line.
 if len(sys.argv) > 1:
@@ -22,7 +21,7 @@ if len(sys.argv) > 1:
     if len(sys.argv) > 3:
         TIME_PER_MOVE = float(sys.argv[3])
 else:
-    import DilutedCoffee_BC_Player as player1
+    import PlayerSkeletonA as player1
     import PlayerSkeletonB as player2
 
 import BC_state_etc as BC
@@ -38,8 +37,6 @@ FINISHED = False
 def runGame():
     # Set up for the match, and report on its details: 
     currentState = BC.BC_state()
-    print(currentState)
-
     print('**** Baroque Chess Gamemaster v'+VERSION+' *****')
     print('The Gamemaster says, "Players, introduce yourselves."')
     print(' (Playing WHITE:) '+player1.introduce())
@@ -140,7 +137,7 @@ def runGame():
             b1 = BC_checker.board_only(currentState)
             b2 = BC_checker.board_only(newState)
             theFile = 'abcdefgh'[j]
-            theRank = str(7 - i)
+            theRank = str(8 - i) # Corrected from 7 - i, on May 14.
             starting_sq_str = theFile + theRank
             print("Calling the move validation service.")
             (status, result)=BC_checker.validate_move(starting_sq_str, b1, b2)
@@ -214,8 +211,8 @@ def timeout(func, args=(), kwargs={}, timeout_duration=1, default=None):
         print("Took too long.")
         print("We are now terminating the game.")
         print("Player "+CURRENT_PLAYER+" loses.")
-        if USE_HTML: gameToHTML.reportResult("Player "+CURRENT_PLAYER+" took too long (%04f seconds) and thus loses." % diff)
-        if USE_HTML: gameToHTML.endHTML()
+        #if USE_HTML: gameToHTML.reportResult("Player "+CURRENT_PLAYER+" took too long (%04f seconds) and thus loses." % diff)
+        #if USE_HTML: gameToHTML.endHTML()
         exit()
     else:
         #print("Within the time limit -- nice!")

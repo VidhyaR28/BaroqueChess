@@ -49,18 +49,21 @@ global statesExpanded
 global numberEvals
 global cutoff
 global chosenMove
-
+global finaltime
+global inputtime
 
 def parameterized_minimax(currentState, alphaBeta=False, ply=3, useBasicStaticEval=True, useZobristHashing=False):
     global statesExpanded
     global numberEvals
     global cutoff
     global chosenMove
+    global inputtime
     statesExpanded = 0
     numberEvals = 0
     cutoff = 0
 
-    chosen = miniMax(currentState, ply, -100000, 100000)
+    chosen = miniMax(currentState, ply, -100000, 100000, 0.9*inputtime)
+
     # [piece, (r,c), (temp_r,temp_c)] is the format for chosenMove
     chosenMove = chosen[1]
     dict = {'CURRENT_STATE_STATIC_VAL': chosen[0], 'N_STATES_EXPANDED': statesExpanded, 'N_STATIC_EVALS': numberEvals, 'N_CUTOFFS': cutoff}
@@ -69,14 +72,19 @@ def parameterized_minimax(currentState, alphaBeta=False, ply=3, useBasicStaticEv
 
 #the input is just a [state]
 #the outout is formated as [staticValue, move]
-def miniMax(state, depth, a, b):
+def miniMax(state, depth, a, b, inputtime):
     global statesExpanded
     global numberEvals
     global cutoff
-    if depth == 0:
+    global finaltime
+
+    if depth == 0 or inputtime <= 1.0:
         numberEvals += 1
         static = staticEval(state)
         return [static, None]
+
+    # makeMove sends in with a starttime, endtime
+    # if time < 1
 
     moves = successors(state)
     # successors produce a list of moves and not states
@@ -86,7 +94,7 @@ def miniMax(state, depth, a, b):
         Bstate = None #[moves]
         for child in moves:
             statesExpanded += 1
-            function = miniMax(statify(state,child,track), depth-1, a, b)
+            function = miniMax(statify(state,child,track), depth-1, a, b, 0.9*inputtime)
             if function[0] > val:
                 Bstate = child
                 val = function[0]
@@ -101,7 +109,7 @@ def miniMax(state, depth, a, b):
         Bstate = None
         for child in moves:
             statesExpanded += 1
-            function = miniMax(statify(state,child,track), depth-1, a, b)
+            function = miniMax(statify(state,child,track), depth-1, a, b, inputtime)
             if function[0] < val:
                 Bstate = child
                 val = function[0]
@@ -115,8 +123,17 @@ def miniMax(state, depth, a, b):
 
 
 def makeMove(currentState, currentRemark, timelimit=10):
+    start_time = time.time()
+    global finaltime
+    global inputtime
 
-    # TIMER COMPONENT
+    # we have a start time, time limit, and elapsed time.
+    # elapsed time too close to timelimit, stop.
+    # make move has to send in a function with time.
+    # first time, I send in nothing? First time I send in time.time
+    # everytime I send in a time limit. I'm gonna do time.time and find out what the time left is.
+
+    finaltime = timelimit + start_time
 
     track = 0
     if currentState.whose_move == 1:
@@ -157,9 +174,12 @@ def makeMove(currentState, currentRemark, timelimit=10):
             return [[strMove,newState],"Phew! Close save!"]
 
 
+
     #IDDFS
     for depth in range(15):
+        inputtime = start_time + timelimit - time.time()  # this will give us the time left.
         parameterized_minimax(currentState, True, depth, False, False)
+
         if depth == 2: # REPLACE THIS - keep track of the timer to timeout here keep 0.02 secconds to compute the following
             global chosenMove
             outState = statify(currentState,chosenMove,track)
@@ -668,6 +688,7 @@ def prepare(player2Nickname, playWhite = False):
     global movesList
     global moveCount
     global chosenMove
+    global inputtime
     captureList = []
     movesList = []
     moveCount = 0
@@ -678,7 +699,7 @@ def prepare(player2Nickname, playWhite = False):
         colourtrack = 1
     else:
         colourtrack = 0
-    print("Hey, I'm super prepared at this point.")
+    print("Hey ", player2Nickname,"! *cracks knuckles* Let's get started.")
 
 
 def basicStaticEval(state):
@@ -716,58 +737,76 @@ def remark():
 def staticEval(state):
 
     returnval = 0
+    board = state.board
 
     for i in range(0, 8):
         for j in range(0, 8):
             #print("Piece location: (", i, ", ", j,") Piece value:",  state.board[i][j])
-            if state.board[i][j] in [2, 3]:
+            if board[i][j] in [2, 3]:
                 # Pincer
-                #print("Enter Pincer")
-                returnval += pincerMobility(state, [i, j]) + pincerKill(state, [i, j])
-                #print("Pincer done")
-            elif state.board[i][j] in [4, 5]:
+                # print("Enter Pincer")
+                check1 = pincerMobility(board, (i, j)) + pincerKill(board, (i, j))
+                print("Pincer mobility + kill", check1)
+                returnval += check1
+                # print("Pincer done")
+            elif board[i][j] in [4, 5]:
                 # Coordinator
-                #print("Enter Coordinator")
-                returnval += coordinatorKill(state, [i, j])
-                #print("Coordinator done")
+                # print("Enter Coordinator")
+                check2 = coordinatorKill(board, (i, j))
+                print("Coordinator Kill ", check2)
+                returnval += check2
+                # print("Coordinator done")
 
-            elif state.board[i][j] in [6, 7]:
+            elif board[i][j] in [6, 7]:
                 # Leaper
-                #print("Enter Leaper")
-                returnval += leaperKill(state, [i, j])
-                #print("Leaper done")
-            elif state.board[i][j] in [10, 11]:
+                # print("Enter Leaper")
+                check3 = leaperKill(board, (i, j))
+                print("Leaper Kill: ", check3)
+
+                returnval += check3
+                # print("Leaper done")
+            elif board[i][j] in [10, 11]:
                 # Withdrawer
-                #print("Enter Withdrawer")
-                returnval += withdrawerKill(state, [i, j])
-                #print("Withdrawer done")
-            elif state.board[i][j] in [12, 13]:
+                # print("Enter Withdrawer")
+                check4 = withdrawerKill(board, (i, j))
+                print("Withdrawer Kill: ", check4)
+                returnval += check4
+                # print("Withdrawer done")
+            elif board[i][j] in [12, 13]:
                 # King
-                #print("Enter King")
-                returnval += kingCheck(state, [i, j])
-                #print("King done")
-            elif state.board[i][j] in [14, 15]:
+                # print("Enter King")
+                check5 = kingCheck(board, (i, j))
+                print("King Check: ", check5)
+                returnval += check5
+                # print("King done")
+            elif board[i][j] in [14, 15]:
                 # Freezer
-                #print("Enter Freezer")
-                returnval += freezerKill(state, [i, j]) / 2
-                #print("Freezer done")
+                # print("Enter Freezer")
+                check6 = freezerKill(board, (i, j)) /2
+                print("Freezer Kill: ", check6)
+                returnval += check6
+                # print("Freezer done")
+    # print("Board is: ")
+    # print(state.board)
+    # print("Stativ Eval: ", returnval)
     return returnval
 
 
-def pincerMobility(state, k):
+def pincerMobility(board, k):
     #print("Pincer Mobility")
-    board = state.board
+    # board = state.board
     movedirection = [[1, 0], [-1, 0], [0, 1], [0, -1]]
     count = 0
     for s in movedirection:
         if (k[0] + s[0]) in range(0, 8) and (k[1] + s[1]) in range(0, 8):
             if board[k[0] + s[0]][k[1] + s[1]] == 0:
-                count += 1
+                count += pieceValue.get(board[k[0]][k[1]])/abs(pieceValue.get(board[k[0]][k[1]]))
+
     return count * 5
 
 
-def pincerKill(state, k):
-    board = state.board
+def pincerKill(board, k):
+    # board = state.board
     # go north, south, east, west. Hit a block. Check if it's the other colour. If yes, go one step ahead and see if we
     # have a piece there. If yes, more points.
     count = 0
@@ -782,7 +821,7 @@ def pincerKill(state, k):
     networth = 0
 
     for s in movedirection:
-        t = k
+        t = [k[0], k[1]]
 
         # checks in a direction. Loops through blank spaces, checks if it's an opponent. If true, checks if our
         # our piece exists right after.
@@ -814,8 +853,8 @@ def pincerKill(state, k):
     return networth * count
 
 
-def freezerKill(state, k):
-    board = state.board
+def freezerKill(board, k):
+    # board = state.board
     movedirection = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [-1, 1], [1, -1]]
 
     if board[k[0]][k[1]] in [2, 4, 6, 8, 10, 12, 14]:
@@ -825,29 +864,30 @@ def freezerKill(state, k):
 
     count = 0
     networth = 0
-    threatworth = 0
-    threatcount = 0
+    # threatworth = 0
+    # threatcount = 0
 
     for s in movedirection:
-        t = k
+        t = [k[0], k[1]]
         t[0] += s[0]
         t[1] += s[1]
         if (t[0] in range(0, 8) and t[1] in range(0, 8) and board[t[0]][t[1]] != 0):
             if board[t[0]][t[1]] in opponentPieces:
                 # do something
-                networth = pieceValue.get(board[t[0]][t[1]])
+                networth += pieceValue.get(board[t[0]][t[1]])
                 count += 1
-            else:
-
-                threatworth = pieceValue.get(board[t[0]][t[1]])
-                threatcount += 1
+            # else:
+            #
+            #     threatworth = pieceValue.get(board[t[0]][t[1]])
+            #     threatcount += 1
     # the more things we freeze, the better off we are
-    return (networth * count + threatworth * threatcount) / 4
+    return (networth * count) / 4
 
 
-def kingCheck(state, k):
+def kingCheck(board, k):
     # If king is around  a couple of different folks,
-    board = state.board
+    # board = state.board
+    print("Original Input: ", board[k[0]][k[1]])
     movedirection = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [-1, 1], [1, -1]]
 
     if board[k[0]][k[1]] in [2, 4, 6, 8, 10, 12, 14]:
@@ -858,27 +898,33 @@ def kingCheck(state, k):
     count = 0
 
     for s in movedirection:
-        t = k
-        #print("S : ", s)
-        t[0] += s[0]
-        t[1] += s[1]
-        if t[0] in range(0, 8) and t[1] in range(0, 8) and board[t[0]][t[1]] != 0:
-            if board[t[0]][t[1]] in opponentPieces:
-                if pieceValue.get(board[t[0]][t[1]]) < 0:
-                    count -= 800
-                else:
-                    count += 800
-            else:
-                if pieceValue.get(board[t[0]][t[1]] < 0):
-                    count -= 800
-                else:
-                    count += 800
+        t = [k[0], k[1]]
 
+        for loop in range(1, 3):
+            print("Loop: ", loop)
+
+            t[0] += s[0] * loop
+            t[1] += s[1] * loop
+
+            if t[0] in range(0, 8) and t[1] in range(0, 8):
+                if (board[t[0]][t[1]] < 0 and board[k[0]][k[1]] < 0) or (board[t[0]][t[1]] > 0 and board[k[0]][k[1]] > 0):
+                    sameSide = True
+                else:
+                    sameSide = False
+                print("Same Side: ", sameSide, "King: ",board[k[0]][k[1]], "Other: ", board[t[0]][t[1]])
+                if t[0] in range(0, 8) and t[1] in range(0, 8) and board[t[0]][t[1]] != 0:
+                    if pieceValue.get(board[k[0]][k[1]]) < 0 and sameSide:
+                        count += 800
+                    else:
+                        count -= 800
+                    print("Count: ", count)
+
+    print("Final count ", count)
     return count
 
 
-def leaperKill(state, k):
-    board = state.board
+def leaperKill(board, k):
+    # board = state.board
     # go north, south, east, west. Hit a block. Check if it's the other colour. If yes, go one step ahead and see if we
     # have a piece there. If yes, more points.
     count = 0
@@ -892,7 +938,7 @@ def leaperKill(state, k):
     networth = 0
 
     for s in movedirection:
-        t = k
+        t = [k[0], k[1]]
 
         # checks in a direction. Loops through blank spaces, checks if it's an opponent. If true, checks if our
         # our piece exists right after.
@@ -923,9 +969,9 @@ def leaperKill(state, k):
     return networth * count
 
 
-def withdrawerKill(state, k):
+def withdrawerKill(board, k):
     # if we have an item of opposite colour and on opposite side we have a blank, then we add value.
-    board = state.board
+    # board = state.board
     movedirection = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [-1, 1], [1, -1]]
 
     count = 0
@@ -936,7 +982,7 @@ def withdrawerKill(state, k):
         opponentPieces = [2, 4, 6, 8, 10, 12, 14]
 
     for s in movedirection:
-        t = k
+        t = [k[0], k[1]]
         t[0] += s[0]
         t[1] += s[1]
         if t[0] in range(0, 8) and t[1] in range(0, 8):
@@ -949,8 +995,8 @@ def withdrawerKill(state, k):
     return count
 
 
-def coordinatorKill(state, k):
-    board = state.board
+def coordinatorKill(board, k):
+    # board = state.board
     if board[k[0]][k[1]] in [2, 4, 6, 8, 10, 12, 14]:
         opponentPieces = [3, 5, 7, 9, 11, 13, 15]
         king = 12
