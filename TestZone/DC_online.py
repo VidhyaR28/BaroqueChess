@@ -63,7 +63,7 @@ def parameterized_minimax(currentState, alphaBeta= True, ply=3, useBasicStaticEv
     statesExpanded = 0
     numberEvals = 0
     cutoff = 0
-    print("Param minimax")
+    # print("Param minimax")
     chosen = miniMax(currentState, ply, -100000, 100000, useBasicStaticEval, alphaBeta) #, 0.9*inputtime)
     # [piece, (r,c), (temp_r,temp_c)] is the format for chosenMove
     chosenMove = chosen[1]
@@ -93,7 +93,7 @@ def miniMax(state, depth, a, b, useBasicStaticEval, alphaBeta):
 
     # Expand state optimisation, remove if causing error
     # some global tracker of depth
-    print("Depth value: ", IDDFStrack)
+    # print("Depth value: ", IDDFStrack)
     if IDDFStrack > 1:
         # can't use normal depth which we're sending as an input because it's a recursive call and depth changes.
         moves.remove(chosenMove)
