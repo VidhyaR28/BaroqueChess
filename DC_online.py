@@ -63,7 +63,7 @@ def parameterized_minimax(currentState, alphaBeta=False, ply=3, useBasicStaticEv
     numberEvals = 0
     cutoff = 0
 
-    chosen = miniMax(currentState, ply, -100000, 100000, 0.9*inputtime)
+    chosen = miniMax(currentState, ply, -100000, 100000) #, 0.9*inputtime)
     # [piece, (r,c), (temp_r,temp_c)] is the format for chosenMove
     chosenMove = chosen[1]
     dict = {'CURRENT_STATE_STATIC_VAL': chosen[0], 'N_STATES_EXPANDED': statesExpanded, 'N_STATIC_EVALS': numberEvals,
@@ -73,13 +73,13 @@ def parameterized_minimax(currentState, alphaBeta=False, ply=3, useBasicStaticEv
 
 # the input is just a [state]
 # the outout is formated as [staticValue, move]
-def miniMax(state, depth, a, b, giventime):
+def miniMax(state, depth, a, b): # , giventime):
     global inputtime
     global iterDepthTrack
     global statesExpanded
     global numberEvals
     global cutoff
-    if depth == 0 or giventime <= 1.0:
+    if depth == 0:
         numberEvals += 1
         static = staticEval(state)
         return [static, None]
@@ -92,7 +92,7 @@ def miniMax(state, depth, a, b, giventime):
         Bstate = None  # [moves]
         for child in moves:
             statesExpanded += 1
-            function = miniMax(statify(state, child, track), depth - 1, a, b, 0.9*inputtime)
+            function = miniMax(statify(state, child, track), depth - 1, a, b) #, 0.9*inputtime)
             if function[0] > val:
                 Bstate = child
                 val = function[0]
@@ -107,7 +107,7 @@ def miniMax(state, depth, a, b, giventime):
         Bstate = None
         for child in moves:
             statesExpanded += 1
-            function = miniMax(statify(state, child, track), depth - 1, a, b, 0.9*inputtime)
+            function = miniMax(statify(state, child, track), depth - 1, a, b) #, 0.9*inputtime)
             if function[0] < val:
                 Bstate = child
                 val = function[0]
@@ -163,18 +163,32 @@ def makeMove(currentState, currentRemark, timelimit=10):
             return [[strMove, newState], "Phew! Close save!"]
 
     # IDDFS
-    for depth in range(15):
-        inputtime = start_time + timelimit - time.time()  # this will give us the time left.
+    depth = 1
+
+    while (start_time + timelimit - time.time() > 1.0):
         parameterized_minimax(currentState, True, depth, False, False)
-        # if inputtime <= 1.5:
-        if depth == 4:  # REPLACE THIS - keep track of the timer to timeout here keep 0.02 secconds to compute the following
-            global chosenMove
-            outState = statify(currentState, chosenMove, track)
-            outMove = stringify(chosenMove)
-            newRemark = remark()
-            global moveCount
-            moveCount += 1
-            return [[outMove, outState], newRemark]
+        global chosenMove
+        outState = statify(currentState, chosenMove, track)
+        outMove = stringify(chosenMove)
+        newRemark = remark()
+        global moveCount
+        moveCount += 1
+        depth += 1
+        return [[outMove, outState], newRemark]
+
+    # for depth in range(15):
+    #     inputtime = start_time + timelimit - time.time()  # this will give us the time left.
+    #     parameterized_minimax(currentState, True, depth, False, False)
+    #     if inputtime <= 1.0:
+    #     # if depth == 4:  # REPLACE THIS - keep track of the timer to timeout here keep 0.02 secconds to compute the following
+    #         global chosenMove
+    #         outState = statify(currentState, chosenMove, track)
+    #         outMove = stringify(chosenMove)
+    #         newRemark = remark()
+    #         global moveCount
+    #         moveCount += 1
+    #         return [[outMove, outState], newRemark]
+
 
 
 MAP_ROW = {0: 'a', 1: 'b', 2: 'c', 3: 'd', 4: 'e', 5: 'f', 6: 'g', 7: 'h'}
