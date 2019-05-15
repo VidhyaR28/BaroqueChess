@@ -178,7 +178,7 @@ def makeMove(currentState, currentRemark, timelimit=10):
         inputtime = start_time + timelimit - time.time() # this will give us the time left.
         parameterized_minimax(currentState, True, depth, False, False)
 
-        if depth == 2: # REPLACE THIS - keep track of the timer to timeout here keep 0.02 secconds to compute the following
+        if depth == 3: # REPLACE THIS - keep track of the timer to timeout here keep 0.02 secconds to compute the following
 
             global chosenMove
             outState = statify(currentState,chosenMove,track)

@@ -597,9 +597,11 @@ def kingCheckAttack(board, r, c, track):
         if temp_r in range(8) and temp_c in range(8):
             adj = board[temp_r][temp_c]
             if adj == (7 - track):  # Leaper
-                return k
+                if r-k[0] in range(8) and c-k[1] in range(8) and board[r-k[0]][c-k[1]] == 0:
+                    return k
             if adj == (3 - track) and k in movedirection[:4]:  # Pincer
-                return k
+                if r - k[0] in range(8) and c - k[1] in range(8) and board[r - k[0]][c - k[1]] == 0:
+                    return k
             if adj == (13 - track) or adj == (5 - track):  # King-Coordinator
                 return k
             if adj == (15 - track):  # Freezer
@@ -610,6 +612,8 @@ def kingCheckAttack(board, r, c, track):
 def kingAttackMove(board, r, c, piece, track):
     movedirection = [[0, 1], [-1, 0], [0, -1], [1, 0], [-1, 1], [-1, -1], [1, -1], [1, 1]]
 
+    condition = False
+
     for k in movedirection:
         temp_r = r + k[0]
         temp_c = c + k[1]
@@ -617,11 +621,11 @@ def kingAttackMove(board, r, c, piece, track):
         if temp_r in range(8) and temp_c in range(8):
             adj = board[temp_r][temp_c]
             if adj == 0 or adj in opponent:
-                newBoard = board
-                newBoard[r][c] = 0
-                newBoard[temp_r][temp_c] = piece
                 if not kingCheckAttack(board, temp_r, temp_c, track):
+                    condition = True
                     return [piece, (r, c), (temp_r, temp_c)]
+        if condition:
+            break
     return None
 
 
@@ -670,9 +674,6 @@ def tryMove(board, r, c, possibilities, piece):
                     occupied = True
                 val -= 1
             if not occupied:
-                newState = BC.BC_state(board)
-                newState.board[r][c] = 0
-                newState.board[p[0]][c] = piece
                 return [piece, (r, c), (p[0], c)]
     return None
 
