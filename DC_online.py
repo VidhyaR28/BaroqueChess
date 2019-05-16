@@ -64,7 +64,7 @@ def parameterized_minimax(currentState, alphaBeta= True, ply=3, useBasicStaticEv
     statesExpanded = 0
     numberEvals = 0
     cutoff = 0
-    print("Param minimax")
+    # print("Param minimax")
     chosen = miniMax(currentState, ply, -100000, 100000, useBasicStaticEval, alphaBeta) #, 0.9*inputtime)
     # [piece, (r,c), (temp_r,temp_c)] is the format for chosenMove
     chosenMove = chosen[1]
@@ -98,7 +98,7 @@ def miniMax(state, depth, a, b, useBasicStaticEval, alphaBeta):
     print("Depth value: ", IDDFStrack)
     if IDDFStrack > 1:
         # can't use normal depth which we're sending as an input because it's a recursive call and depth changes.
-        moves.remove(chosenMove)
+        # moves.remove(chosenMove)
         moves.insert(0, chosenMove)
 
     # successors produce a list of moves and not states
@@ -188,7 +188,7 @@ def makeMove(currentState, currentRemark, timelimit=10):
     global ENDTIME
     ENDTIME = start_time + timelimit
     while (ENDTIME - time.time() > 0.3):
-        parameterized_minimax(currentState, True, depth, False, False)
+        parameterized_minimax(currentState, True, IDDFStrack, False, False)
         IDDFStrack += 1
         # where is the depth increasing???
 
@@ -771,8 +771,8 @@ def basicStaticEval(state):
 
 def remark():
     remarks = ["Your turn!", "Take that!", "Try to beat that!", "Think well before you move", "Best is yet to come!",
-               "Come on!", "Lets get moving,"
-                           "Here you go!"]
+               "Come on!", "Lets get moving,", "Don't think too much, just play!",
+                           "Here you go!", "Don't "]
     return random.choice(remarks)
 
 def staticEval(state):

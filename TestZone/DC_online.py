@@ -64,7 +64,7 @@ def parameterized_minimax(currentState, alphaBeta= True, ply=3, useBasicStaticEv
     statesExpanded = 0
     numberEvals = 0
     cutoff = 0
-    print("Param minimax")
+    # print("Param minimax")
     chosen = miniMax(currentState, ply, -100000, 100000, useBasicStaticEval, alphaBeta) #, 0.9*inputtime)
     # [piece, (r,c), (temp_r,temp_c)] is the format for chosenMove
     chosenMove = chosen[1]
@@ -188,9 +188,9 @@ def makeMove(currentState, currentRemark, timelimit=10):
     global ENDTIME
     ENDTIME = start_time + timelimit
     while (ENDTIME - time.time() > 0.3):
-        print("Depth value: ", IDDFStrack)
         parameterized_minimax(currentState, True, IDDFStrack, False, False)
         IDDFStrack += 1
+        # where is the depth increasing???
 
 
     global chosenMove
@@ -338,6 +338,7 @@ def generateStates(currentState):
                 # My army's coordinator
                 cordR = i
                 cordC = j
+                # print("Updates Coordinator: i: ", i, "j: ", j)
 
     for i in range(8):
         for j in range(8):
@@ -366,7 +367,8 @@ def pincerMoves(board, r, c, piece):
         temp_r = r + k[0]
         temp_c = c + k[1]
         while temp_r in range(8) and temp_c in range(8) and board[temp_r][temp_c] == 0:
-            neighbour = [dir for dir in movedirection if dir != k]
+            new_k = [-k[0],-k[1]]
+            neighbour = [dir for dir in movedirection if dir != new_k]
             cap = []
             capture = False
             for n in neighbour:
@@ -374,7 +376,7 @@ def pincerMoves(board, r, c, piece):
                 nC = temp_c + n[1]
                 if nR in range(8) and nC in range(8) and board[nR][nC] in opponent:
                     if nR + n[0] in range(8) and nC + n[1] in range(8) and board[nR + n[0]][nC + n[1]] in friendly:
-                        cap.append((temp_r, temp_c))
+                        cap.append((nR, nC))
                         capture = True
             if capture:
                 # pincer capture moves
@@ -403,8 +405,8 @@ def withdrawerMoves(board, r, c, piece):
                 while temp_r in range(8) and temp_c in range(8) and board[temp_r][temp_c] == 0:
                     captureList.append([piece, (r, c), (temp_r, temp_c), (r + k[0], c + k[1])])
                     capture = True
-                    temp_c -= k[1]
                     temp_r -= k[0]
+                    temp_c -= k[1]
 
                 if capture:
                     captureMoves.append([k[0], k[1]])
@@ -508,13 +510,16 @@ def imitatorMoves(board, r, c, rk, ck, piece, track):
             # Withdrawer capture
             if enemy == (11 - track):
                 temp_r = r - k[0]
-                temp_c = r - k[1]
+                temp_c = c - k[1]
                 while temp_r in range(8) and temp_c in range(8) and board[temp_r][temp_c] == 0:
                     captureList.append([piece, (r, c), (temp_r, temp_c), (r + k[0], c + k[1])])
                     temp_r -= k[0]
                     temp_c -= k[1]
+            #REMOVE BOTH DIRECTIONS FROM NORMAL MOVESLIST
 
-            # Coordinator capture
+            # Coordinator capture -------REWRITE
+            # check if rk == enemy's r then look for free spaces to move in enemy's c & -c direction
+            # REMOVE THESE DIRECTIONS FROM THE MOVELIST ...not so sure
             if enemy == (5 - track):
                 if r + k[0] == rk and rk != r:
                     if board[r][c + k[1]] == 0:
@@ -547,10 +552,14 @@ def imitatorMoves(board, r, c, rk, ck, piece, track):
                 if temp_r in range(8) and temp_c in range(8) and board[temp_r][temp_c] == 0:
                     captureList.append([piece, (r, c), (temp_r, temp_c), (r + k[0], c + k[1])])
 
+
+# LOOK AT PINCER CAPTURE AND ITS DIRECTION OF CAPTURE
     # Dynamic analysis
     for k in movedirection:
         temp_r = r + k[0]
         temp_c = c + k[1]
+        # like in pincer capture...check every move and look at neighbours to check for pincer and the piece after that for friendly
+        # LOOK AT COORDINATOR CAPTURE TOO if the enemy coord is already in line with the king's r or c
         while temp_r in range(8) and temp_c in range(8) and board[temp_r][temp_c] == 0:
             cap = imitatorDEval(board, temp_r, temp_c, rk, ck, track)
             if len(cap) == 0:
@@ -763,8 +772,8 @@ def basicStaticEval(state):
 
 def remark():
     remarks = ["Your turn!", "Take that!", "Try to beat that!", "Think well before you move", "Best is yet to come!",
-               "Come on!", "Lets get moving,"
-                           "Here you go!"]
+               "Come on!", "Lets get moving,", "Here you go!", "When you see a good move, look for a better one",
+               "Don't regret making bad moves, learn from them", ]
     return random.choice(remarks)
 
 def staticEval(state):
