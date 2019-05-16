@@ -179,7 +179,7 @@ def makeMove(currentState, currentRemark, timelimit=10):
       #   curr_best = BEST_MOVE
       #   curr_state = BEST_STATE
       ply += 1
-
+      print("Opponents depth: ", ply)
 
     newState = BEST_STATE
     move = BEST_MOVE
