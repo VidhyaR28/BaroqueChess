@@ -70,7 +70,7 @@ WHITE_WITHDRAWER  = 11
 WHITE_KING        = 13
 WHITE_FREEZER     = 15
 
-# TODO Remove DEBUG_MODE for final product
+# TO DO Remove DEBUG_MODE for final product
 DEBUG_MODE = False
 
 leaper_move = False

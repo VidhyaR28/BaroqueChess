@@ -188,6 +188,7 @@ def makeMove(currentState, currentRemark, timelimit=10):
         parameterized_minimax(currentState, True, depth, False, False)
         IDDFStrack += 1
 
+
     global chosenMove
     outState = statify(currentState, chosenMove, track)
     outMove = stringify(chosenMove)
@@ -715,10 +716,10 @@ def prepare(player2Nickname, playWhite=False):
     global moveCount
     global chosenMove
     global inputtime
-    captureList = []
-    movesList = []
+    # captureList = []
+    # movesList = []
     moveCount = 0
-    chosenMove = [0, 0, 0, 0]
+    # chosenMove = [0, 0, 0, 0]
 
 
 
