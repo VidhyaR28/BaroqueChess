@@ -96,7 +96,7 @@ def miniMax(state, depth, a, b, useBasicStaticEval, alphaBeta):
     # print("Depth value: ", IDDFStrack)
     if IDDFStrack > 1:
         # can't use normal depth which we're sending as an input because it's a recursive call and depth changes.
-        moves.remove(chosenMove)
+#         moves.remove(chosenMove)
         moves.insert(0, chosenMove)
 
     # successors produce a list of moves and not states
@@ -184,8 +184,9 @@ def makeMove(currentState, currentRemark, timelimit=10):
     global IDDFStrack
     IDDFStrack = 0
 
-    while (start_time + timelimit - time.time() > 0.3):
-        parameterized_minimax(currentState, True, depth, False, False)
+    while ((start_time + timelimit - time.time()) > 1.5 and IDDFStrack < 4):
+        print("IDDFS Track: ", IDDFStrack)
+        parameterized_minimax(currentState, True, IDDFStrack, False, False)
         IDDFStrack += 1
 
     global chosenMove
