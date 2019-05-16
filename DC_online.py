@@ -37,6 +37,7 @@ global friendly
 global moveCount
 global inputtime
 global IDDFStrack
+global ENDTIME
 
 CODE_TO_INIT = {0: '-', 2: 'p', 3: 'P', 4: 'c', 5: 'C', 6: 'l', 7: 'L', 8: 'i', 9: 'I',
                 10: 'w', 11: 'W', 12: 'k', 13: 'K', 14: 'f', 15: 'F'}
@@ -83,8 +84,9 @@ def miniMax(state, depth, a, b, useBasicStaticEval, alphaBeta):
     global IDDFStrack
     if useBasicStaticEval: staticfunction = basicStaticEval
     else: staticfunction = staticEval
+    global ENDTIME
 
-    if depth == 0:
+    if depth == 0 or (ENDTIME - time.time() < 0.3):
         numberEvals += 1
         static = staticfunction(state)
         return [static, None]
@@ -183,8 +185,9 @@ def makeMove(currentState, currentRemark, timelimit=10):
     # newRemark = ""
     global IDDFStrack
     IDDFStrack = 0
-
-    while (start_time + timelimit - time.time() > 0.3):
+    global ENDTIME
+    ENDTIME = start_time + timelimit
+    while (ENDTIME - time.time() > 0.3):
         parameterized_minimax(currentState, True, depth, False, False)
         IDDFStrack += 1
 

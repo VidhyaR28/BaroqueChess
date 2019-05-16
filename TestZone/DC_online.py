@@ -37,6 +37,7 @@ global friendly
 global moveCount
 global inputtime
 global IDDFStrack
+global ENDTIME
 
 CODE_TO_INIT = {0: '-', 2: 'p', 3: 'P', 4: 'c', 5: 'C', 6: 'l', 7: 'L', 8: 'i', 9: 'I',
                 10: 'w', 11: 'W', 12: 'k', 13: 'K', 14: 'f', 15: 'F'}
@@ -63,7 +64,7 @@ def parameterized_minimax(currentState, alphaBeta= True, ply=3, useBasicStaticEv
     statesExpanded = 0
     numberEvals = 0
     cutoff = 0
-    # print("Param minimax")
+    print("Param minimax")
     chosen = miniMax(currentState, ply, -100000, 100000, useBasicStaticEval, alphaBeta) #, 0.9*inputtime)
     # [piece, (r,c), (temp_r,temp_c)] is the format for chosenMove
     chosenMove = chosen[1]
@@ -83,8 +84,9 @@ def miniMax(state, depth, a, b, useBasicStaticEval, alphaBeta):
     global IDDFStrack
     if useBasicStaticEval: staticfunction = basicStaticEval
     else: staticfunction = staticEval
+    global ENDTIME
 
-    if depth == 0:
+    if depth == 0 or (ENDTIME - time.time() < 0.3):
         numberEvals += 1
         static = staticfunction(state)
         return [static, None]
@@ -96,7 +98,7 @@ def miniMax(state, depth, a, b, useBasicStaticEval, alphaBeta):
     # print("Depth value: ", IDDFStrack)
     if IDDFStrack > 1:
         # can't use normal depth which we're sending as an input because it's a recursive call and depth changes.
-#         moves.remove(chosenMove)
+        # moves.remove(chosenMove)
         moves.insert(0, chosenMove)
 
     # successors produce a list of moves and not states
@@ -183,11 +185,13 @@ def makeMove(currentState, currentRemark, timelimit=10):
     # newRemark = ""
     global IDDFStrack
     IDDFStrack = 0
-
-    while ((start_time + timelimit - time.time()) > 1.5 and IDDFStrack < 4):
-        print("IDDFS Track: ", IDDFStrack)
+    global ENDTIME
+    ENDTIME = start_time + timelimit
+    while (ENDTIME - time.time() > 0.3):
+        print("Depth value: ", IDDFStrack)
         parameterized_minimax(currentState, True, IDDFStrack, False, False)
         IDDFStrack += 1
+
 
     global chosenMove
     outState = statify(currentState, chosenMove, track)
@@ -716,10 +720,10 @@ def prepare(player2Nickname, playWhite=False):
     global moveCount
     global chosenMove
     global inputtime
-    captureList = []
-    movesList = []
+    # captureList = []
+    # movesList = []
     moveCount = 0
-    chosenMove = [0, 0, 0, 0]
+    # chosenMove = [0, 0, 0, 0]
 
 
 
