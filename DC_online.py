@@ -363,7 +363,8 @@ def pincerMoves(board, r, c, piece):
         temp_r = r + k[0]
         temp_c = c + k[1]
         while temp_r in range(8) and temp_c in range(8) and board[temp_r][temp_c] == 0:
-            neighbour = [dir for dir in movedirection if dir != -k]
+            new_k = [-k[0],-k[1]]
+            neighbour = [dir for dir in movedirection if dir != new_k]
             cap = []
             capture = False
             for n in neighbour:
