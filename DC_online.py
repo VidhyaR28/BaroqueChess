@@ -145,11 +145,6 @@ def makeMove(currentState, currentRemark, timelimit=10):
         track = 0
     board = currentState.board
 
-    global opponent
-    opponent = [3 - track, 5 - track, 7 - track, 9 - track, 11 - track, 13 - track, 15 - track]
-
-    global friendly
-    friendly = [2 + track, 4 + track, 6 + track, 8 + track, 10 + track, 12 + track, 14 + track]
 
     king_r = 0
     king_c = 0
@@ -286,6 +281,13 @@ def generateStates(currentState):
         track = 1
     else:
         track = 0
+
+
+    global opponent
+    opponent = [3 - track, 5 - track, 7 - track, 9 - track, 11 - track, 13 - track, 15 - track]
+
+    global friendly
+    friendly = [2 + track, 4 + track, 6 + track, 8 + track, 10 + track, 12 + track, 14 + track]
 
     frozenPieces = []
     kingR = 0
@@ -494,6 +496,9 @@ def freezerMoves(board, r, c, piece):
 
 def imitatorMoves(board, r, c, rk, ck, piece, track):
     movedirection = [[0, 1], [-1, 0], [0, -1], [1, 0], [-1, 1], [-1, -1], [1, -1], [1, 1]]
+    capture = False
+    captureMoves = []
+
 
     # Stationary analysis
     for k in movedirection:
@@ -509,37 +514,32 @@ def imitatorMoves(board, r, c, rk, ck, piece, track):
                 temp_c = c - k[1]
                 while temp_r in range(8) and temp_c in range(8) and board[temp_r][temp_c] == 0:
                     captureList.append([piece, (r, c), (temp_r, temp_c), (r + k[0], c + k[1])])
+                    capture = True
                     temp_r -= k[0]
                     temp_c -= k[1]
-            #REMOVE BOTH DIRECTIONS FROM NORMAL MOVESLIST
+                if capture:
+                    captureMoves.append([k[0], k[1]])
+                    captureMoves.append([-k[0], -k[1]])
 
-            # Coordinator capture -------REWRITE
-            # check if rk == enemy's r then look for free spaces to move in enemy's c & -c direction
-            # REMOVE THESE DIRECTIONS FROM THE MOVELIST ...not so sure
+            # Coordinator capture
             if enemy == (5 - track):
-                if r + k[0] == rk and rk != r:
-                    if board[r][c + k[1]] == 0:
-                        captureList.append([piece, (r, c), (r, c + k[1]), (r + k[0], c + k[1])])
+                enemy_r = r + k[0]
+                enemy_c = c + k[1]
+                if enemy_r == rk:
+                    for h in movedirection:
+                        temp_r = r + h[0]
+                        temp_c = c + h[1]
+                        if temp_r in range(8) and temp_c in range(8) and board[temp_r][temp_c] == 0:
+                            if temp_c == enemy_c:
+                                captureList.append([piece, (r, c), (temp_r, temp_c), (enemy_r, enemy_c)])
 
-                elif r + k[0] == rk and c + k[1] == c:
-                    if r + 1 in range(8):
-                        if board[r + 1][c] == 0:
-                            captureList.append([piece, (r, c), (r + 1, c), (r + k[0], c + k[1])])
-                    elif r - 1 in range(8):
-                        if board[r - 1][c] == 0:
-                            captureList.append([piece, (r, c), (r - 1, c), (r + k[0], c + k[1])])
-
-                elif c + k[0] == ck and ck != c:
-                    if board[r + k[0]][c] == 0:
-                        captureList.append([piece, (r, c), (r + k[0], c), (r + k[0], c + k[1])])
-
-                elif c + k[0] == ck and r + k[0] == r:
-                    if c + 1 in range(8):
-                        if board[r][c + 1] == 0:
-                            captureList.append([piece, (r, c), (r, c + 1), (r + k[0], c + k[1])])
-                    elif c - 1 in range(8):
-                        if board[r][c - 1] == 0:
-                            captureList.append([piece, (r, c), (r, c - 1), (r + k[0], c + k[1])])
+                if enemy_c == ck:
+                    for h in movedirection:
+                        temp_r = r + h[0]
+                        temp_c = c + h[1]
+                        if temp_r in range(8) and temp_c in range(8) and board[temp_r][temp_c] == 0:
+                            if temp_r == enemy_r:
+                                captureList.append([piece, (r, c), (temp_r, temp_c), (enemy_r, enemy_c)])
 
             # Leaper capture
             if enemy == (7 - track):
@@ -549,13 +549,12 @@ def imitatorMoves(board, r, c, rk, ck, piece, track):
                     captureList.append([piece, (r, c), (temp_r, temp_c), (r + k[0], c + k[1])])
 
 
-# LOOK AT PINCER CAPTURE AND ITS DIRECTION OF CAPTURE
+    other_dir = [k for k in movedirection if k not in captureMoves]
+
     # Dynamic analysis
-    for k in movedirection:
+    for k in other_dir:
         temp_r = r + k[0]
         temp_c = c + k[1]
-        # like in pincer capture...check every move and look at neighbours to check for pincer and the piece after that for friendly
-        # LOOK AT COORDINATOR CAPTURE TOO if the enemy coord is already in line with the king's r or c
         while temp_r in range(8) and temp_c in range(8) and board[temp_r][temp_c] == 0:
             cap = imitatorDEval(board, temp_r, temp_c, rk, ck, track)
             if len(cap) == 0:
@@ -583,14 +582,13 @@ def imitatorDEval(board, r, c, rk, ck, track):
             enemy = board[temp_r][temp_c]
             # Pincer capture
             if enemy == (3 - track) and k in movedirection[:4]:
-                if temp_r + k[0] in range(8) and temp_c + k[1] in range(8) and board[temp_r + k[0]][
-                    temp_c + k[1]] in friendly:
+                if temp_r + k[0] in range(8) and temp_c + k[1] in range(8) and board[temp_r + k[0]][temp_c + k[1]] in friendly:
                     cList.append((temp_r, temp_c))
 
             # Coordinate capture
             if enemy == (5 - track) and (r != rk or c != ck):
-                if (r + k[0], c + k[1]) in [(r, ck), (rk, c)]:
-                    cList.append((r + k[0], c + k[1]))
+                if (temp_r, temp_c) in [(r, ck), (rk, c)]:
+                    cList.append((temp_r, temp_c))
     return cList
 
 
@@ -632,7 +630,7 @@ def kingCheckAttack(board, r, c, track):
                 if r-k[0] in range(8) and c-k[1] in range(8) and board[r-k[0]][c-k[1]] == 0:
                     return k
             if adj == (3 - track) and k in movedirection[:4]:  # Pincer
-                if r - k[0] in range(8) and c - k[1] in range(8) and board[r - k[0]][c - k[1]] == 0:
+                if r-k[0] in range(8) and c-k[1] in range(8) and board[r-k[0]][c-k[1]] in opponent:
                     return k
             if adj == (13 - track) or adj == (5 - track):  # King-Coordinator
                 return k
@@ -644,8 +642,6 @@ def kingCheckAttack(board, r, c, track):
 def kingAttackMove(board, r, c, piece, track):
     movedirection = [[0, 1], [-1, 0], [0, -1], [1, 0], [-1, 1], [-1, -1], [1, -1], [1, 1]]
 
-    condition = False
-
     for k in movedirection:
         temp_r = r + k[0]
         temp_c = c + k[1]
@@ -654,10 +650,7 @@ def kingAttackMove(board, r, c, piece, track):
             adj = board[temp_r][temp_c]
             if adj == 0 or adj in opponent:
                 if not kingCheckAttack(board, temp_r, temp_c, track):
-                    condition = True
                     return [piece, (r, c), (temp_r, temp_c)]
-        if condition:
-            break
     return None
 
 
@@ -668,45 +661,33 @@ def kingMinionMove(board, r, c, KK, track):
         temp_r = r + (KK[0] * (i + 1))
         temp_c = c + (KK[1] * (i + 1))
         if temp_r in range(8) and temp_c in range(8) and board[temp_r][temp_c] == 0:
-            closures.append((r + (KK[0] * (i + 1)), c + (KK[1] * (i + 1))))
+            closures.append((temp_r, temp_c))
 
     if closures:
         for i in range(8):
             for j in range(8):
                 piece = board[i][j]
-                if piece == (2 + track) and KK in movedirection:  # pincer
-                    move = tryMove(board, i, j, closures, piece)
-                    if move: return move
-                if piece in friendly[1:]:  # all other pieces
-                    move = tryMove(board, i, j, closures, piece)
+                if piece in friendly and piece != 12+track:  # all my pieces except king
+                    move = tryMove(board, i, j, closures, piece, track)
                     if move: return move
 
 
-def tryMove(board, r, c, possibilities, piece):
-    for p in possibilities:
-        if r == p[0]:
-            val = abs(c - p[1]) - 1
-            occupied = False
-            minVal = min(c, p[1])
-            while val > 0:
-                minVal += 1
-                if board[r][minVal] != 0:
-                    occupied = True
-                val -= 1
-            if not occupied:
-                return [piece, (r, c), (r, p[1])]
+def tryMove(board, r, c, possibilities, piece, track):
+    # r,c are the coordinates of the unmoved friendly pieces
+    movedirection = [[0, 1], [-1, 0], [0, -1], [1, 0], [-1, 1], [-1, -1], [1, -1], [1, 1]]
 
-        if c == p[1]:
-            val = abs(r - p[0]) - 1
-            occupied = False
-            minVal = min(r, p[0])
-            while val > 0:
-                minVal += 1
-                if board[minVal][c] != 0:
-                    occupied = True
-                val -= 1
-            if not occupied:
-                return [piece, (r, c), (p[0], c)]
+    for k in movedirection:
+        temp_r = r+k[0]
+        temp_c = c+k[1]
+        while temp_r in range(8) and temp_c in range(8) and board[temp_r][temp_c] == 0:
+            for p in possibilities:
+                if temp_r == p[0] and temp_c == p[1]:
+                    if piece == 2+track and k in movedirection[:4]:
+                        return [piece, (r, c), (temp_r, temp_c)]
+                    elif piece != 2+track:
+                        return [piece, (r, c), (temp_r, temp_c)]
+            temp_r += k[0]
+            temp_c += k[1]
     return None
 
 

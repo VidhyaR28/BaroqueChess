@@ -228,6 +228,9 @@ def statify(state, m, track):
     rf = m[2][0]
     cf = m[2][1]
     piece = m[0]
+
+    tra_ck = state.whose_move
+
     try:
         for i in m[3]:
             rCap = i[0]
@@ -237,7 +240,7 @@ def statify(state, m, track):
         dummy = None
     newState.board[r][c] = 0
     newState.board[rf][cf] = piece
-    newState.whose_move = 1-track
+    newState.whose_move = 1-tra_ck
     return newState
 
 
@@ -646,6 +649,13 @@ def kingMinionMove(board, r, c, KK, track):
 
 
 def tryMove(board, r, c, possibilities, piece):
+    movedirection = [[0, 1], [-1, 0], [0, -1], [1, 0], [-1, 1], [-1, -1], [1, -1], [1, 1]]
+
+
+
+
+
+
     for p in possibilities:
         if r == p[0]:
             val = abs(c-p[1])-1
