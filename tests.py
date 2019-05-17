@@ -13,6 +13,18 @@ p p p p p p p p
 P P P P P P P P
 F L I W K I L C
 ''')
+
+# i = parse('''
+# - - - k - - - -
+# - - - - - - - -
+# - - - - - p - -
+# - - - - - - - -
+# - - - - - - - -
+# - - - - - L - -
+# - - - - - - - -
+# - - - K - - - -
+# ''')
+
 new = BC_state(i)
 
 k = staticEval(new)

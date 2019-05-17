@@ -633,6 +633,15 @@ def kingCheckAttack(board, r, c, track):
             if adj == (3 - track):  # Pincer
                 return k
 
+        temp_tempr = r + k[0]
+        temp_tempc = c + k[1]
+        while temp_tempr in range(8) and temp_tempc in range(8):
+            adj = board[temp_tempr][temp_tempc]
+            if adj == (13 - track) or adj == (5 - track): # King-Coordinator
+                return k
+            temp_tempr += k[0]
+            temp_tempc += k[1]
+
         while temp_r in range(8) and temp_c in range(8) and board[temp_r][temp_c] == 0:
             temp_r += k[0]
             temp_c += k[1]
@@ -645,8 +654,6 @@ def kingCheckAttack(board, r, c, track):
             if adj == (3 - track) and k in movedirection[:4]:  # Pincer
                 if r-k[0] in range(8) and c-k[1] in range(8) and board[r-k[0]][c-k[1]] in opponent:
                     return k
-            if adj == (13 - track) or adj == (5 - track):  # King-Coordinator
-                return k
             if adj == (15 - track):  # Freezer
                 return k
     return None
@@ -955,7 +962,7 @@ def kingCheck(board, k):
                     temp = [0, 0]
                     temp[0] = k[0] + s[0]
                     temp[1] = k[1] + s[1]
-                    while (t[0] in range(0, 8) and t[1] in range(0, 8)):
+                    while (temp[0] in range(0, 8) and temp[1] in range(0, 8)):
                         temp[0] -= s[0]
                         temp[1] -= s[1]
                         if (board[temp[0]][temp[1]] in [6, 7] and board[temp[0]][temp[1]] in opponentPieces):
