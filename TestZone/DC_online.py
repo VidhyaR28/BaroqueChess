@@ -147,6 +147,11 @@ def makeMove(currentState, currentRemark, timelimit=10):
         track = 0
     board = currentState.board
 
+    global opponent
+    opponent = [3 - track, 5 - track, 7 - track, 9 - track, 11 - track, 13 - track, 15 - track]
+
+    global friendly
+    friendly = [2 + track, 4 + track, 6 + track, 8 + track, 10 + track, 12 + track, 14 + track]
 
     king_r = 0
     king_c = 0
@@ -946,6 +951,21 @@ def kingCheck(board, k):
                     else:
                         count -= 800
                     # print("Count: ", count)
+    # find opponenent king(r, c), find opponent coordinator (r, c), get their Point of intersection, see if we're there
+    opp = []
+    for i in range(0, 8):
+        for j in range(0, 8):
+            if (((board[i][j] == 4 or board[i][j] == 5) and board[i][j] in opponentPieces) or
+                    ((board[i][j] == 12 or board[i][j] == 13) and board[i][j] in opponentPieces)):
+                opp.append([i, j])
+
+    #(i, j) and (a, b)
+    if (len(opp) == 2):
+        t1 = opp.__getitem__(0)
+        t2 = opp.__getitem__(1)
+        if (board[t1[0]][t2[1]] == board[k[0]][k[1]] or board[t1[1]][t2[0]] == board[k[0]][k[1]]):
+            count -= pieceValue.get(board[k[0]][k[1]])
+
 
     # print("Final count ", count)
     return count
