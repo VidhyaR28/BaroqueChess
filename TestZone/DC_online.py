@@ -951,6 +951,17 @@ def kingCheck(board, k):
                     else:
                         count -= 800
                     # print("Count: ", count)
+                if t[0] in range(0, 8) and t[1] in range(0, 8) and board[t[0]][t[1]] == 0 and loop == 1:
+                    temp = [0, 0]
+                    temp[0] = k[0] + s[0]
+                    temp[1] = k[1] + s[1]
+                    while (t[0] in range(0, 8) and t[1] in range(0, 8)):
+                        temp[0] -= s[0]
+                        temp[1] -= s[1]
+                        if (board[temp[0]][temp[1]] in [6, 7] and board[temp[0]][temp[1]] in opponentPieces):
+                            count -= pieceValue.get(board[k[0]][k[1]])
+
+
     # find opponenent king(r, c), find opponent coordinator (r, c), get their Point of intersection, see if we're there
     opp = []
     for i in range(0, 8):
@@ -965,6 +976,7 @@ def kingCheck(board, k):
         t2 = opp.__getitem__(1)
         if (board[t1[0]][t2[1]] == board[k[0]][k[1]] or board[t1[1]][t2[0]] == board[k[0]][k[1]]):
             count -= pieceValue.get(board[k[0]][k[1]])
+
 
 
     # print("Final count ", count)
