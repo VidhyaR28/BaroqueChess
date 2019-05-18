@@ -43,7 +43,7 @@ global ENDTIME
 CODE_TO_INIT = {0: '-', 2: 'p', 3: 'P', 4: 'c', 5: 'C', 6: 'l', 7: 'L', 8: 'i', 9: 'I',
                 10: 'w', 11: 'W', 12: 'k', 13: 'K', 14: 'f', 15: 'F'}
 
-pieceValue = {0: 0, 2: -900, 3: 900, 4: -1000, 5: 1000, 6: 1100, 7: -1100, 8: -1200, 9: 1200, 10: -1300,
+pieceValue = {0: 0, 2: -900, 3: 900, 4: -1000, 5: 1000, 6: -1100, 7: 1100, 8: -1200, 9: 1200, 10: -1300,
               11: 1300, 12: 10000, 13: -10000, 14: -1400, 15: 1400}
 # pieceValue = {0: 0, 2: -1000, 3: 1000, 4: -1100, 5: 1100, 6: 1000, 7: -1000, 8: -1000, 9: 1000, 10: -1000,
 #               11: 1000, 12: 10000, 13: -10000, 14: -1000, 15: 1000}
@@ -209,19 +209,6 @@ def makeMove(currentState, currentRemark, timelimit=10):
 
     return [[outMove, outState], newRemark]
 
-    # for depth in range(15):
-    #     inputtime = start_time + timelimit - time.time()  # this will give us the time left.
-    #     parameterized_minimax(currentState, True, depth, False, False)
-    #     if inputtime <= 1.0:
-    #     # if depth == 4:  # REPLACE THIS - keep track of the timer to timeout here keep 0.02 secconds to compute the following
-    #         global chosenMove
-    #         outState = statify(currentState, chosenMove, track)
-    #         outMove = stringify(chosenMove)
-    #         newRemark = remark()
-    #         global moveCount
-    #         moveCount += 1
-    #         return [[outMove, outState], newRemark]
-
 
 
 MAP_ROW = {0: 'a', 1: 'b', 2: 'c', 3: 'd', 4: 'e', 5: 'f', 6: 'g', 7: 'h'}
@@ -261,16 +248,22 @@ def statify(state, m, track):
     rf = m[2][0]
     cf = m[2][1]
     piece = m[0]
+    newState.board[r][c] = 0
+    newState.board[rf][cf] = piece
+    newState.whose_move = 1 - track
+    length = 3
     try:
+        if len(m) == 4:
+            length = 4
+    except:
+        dummy = None
+
+    if length == 4:
         for i in m[3]:
             rCap = i[0]
             cCap = i[1]
             newState.board[rCap][cCap] = 0
-    except:
-        dummy = None
-    newState.board[r][c] = 0
-    newState.board[rf][cf] = piece
-    newState.whose_move = 1 - track
+
     return newState
 
 
@@ -419,7 +412,7 @@ def withdrawerMoves(board, r, c, piece):
                 temp_r -= k[0]
                 temp_c -= k[1]
                 while temp_r in range(8) and temp_c in range(8) and board[temp_r][temp_c] == 0:
-                    captureList.append([piece, (r, c), (temp_r, temp_c), (r + k[0], c + k[1])])
+                    captureList.append([piece, (r, c), (temp_r, temp_c), [(r + k[0], c + k[1])]])
                     capture = True
                     temp_r -= k[0]
                     temp_c -= k[1]
@@ -447,9 +440,9 @@ def leaperMoves(board, r, c, piece):
             temp_r = final[0] + k[0]
             temp_c = final[1] + k[1]
             if temp_r in range(8) and temp_c in range(8) and board[temp_r][temp_c] in opponent:
-                if temp_r + k[0] in range(8) and temp_c + k[1] in range(8):
+                if (temp_r + k[0]) in range(8) and (temp_c + k[1]) in range(8):
                     if board[temp_r + k[0]][temp_c + k[1]] == 0:
-                        captureList.append([piece, (r, c), (temp_r + k[0], temp_c + k[1]), (temp_r, temp_c)])
+                        captureList.append([piece, (r, c), (temp_r + k[0], temp_c + k[1]), [(temp_r, temp_c)]])
 
 
 def coordinatorMoves(board, r, c, rk, ck, piece):
@@ -488,21 +481,6 @@ def kingMoves(board, r, c, rcord, ccord, piece):
         if temp_r in range(8) and temp_c in range(8):
             if board[temp_r][temp_c] in opponent:
                 captureList.append([piece, (r, c), (temp_r, temp_c)])
-            elif board[temp_r][temp_c] == 0:
-                # captures with coordinator
-                cap = []
-                capture = False
-                if board[temp_r][ccord] in opponent:
-                    cap.append((temp_r, ccord))
-                    capture = True
-                if board[rcord][temp_c] in opponent:
-                    cap.append((rcord, temp_c))
-                    capture = True
-
-                if capture:
-                    captureList.append([piece, (r, c), (temp_r, temp_c), cap])
-                else:
-                    movesList.append([piece, (r, c), (temp_r, temp_c)])
 
 
 def freezerMoves(board, r, c, piece):
@@ -531,7 +509,7 @@ def imitatorMoves(board, r, c, rk, ck, piece, track):
                 temp_r = r - k[0]
                 temp_c = c - k[1]
                 while temp_r in range(8) and temp_c in range(8) and board[temp_r][temp_c] == 0:
-                    captureList.append([piece, (r, c), (temp_r, temp_c), (r + k[0], c + k[1])])
+                    captureList.append([piece, (r, c), (temp_r, temp_c), [(r + k[0], c + k[1])]])
                     capture = True
                     temp_r -= k[0]
                     temp_c -= k[1]
@@ -549,7 +527,7 @@ def imitatorMoves(board, r, c, rk, ck, piece, track):
                         temp_c = c + h[1]
                         if temp_r in range(8) and temp_c in range(8) and board[temp_r][temp_c] == 0:
                             if temp_c == enemy_c:
-                                captureList.append([piece, (r, c), (temp_r, temp_c), (enemy_r, enemy_c)])
+                                captureList.append([piece, (r, c), (temp_r, temp_c), [(enemy_r, enemy_c)]])
 
                 if enemy_c == ck:
                     for h in movedirection:
@@ -557,14 +535,14 @@ def imitatorMoves(board, r, c, rk, ck, piece, track):
                         temp_c = c + h[1]
                         if temp_r in range(8) and temp_c in range(8) and board[temp_r][temp_c] == 0:
                             if temp_r == enemy_r:
-                                captureList.append([piece, (r, c), (temp_r, temp_c), (enemy_r, enemy_c)])
+                                captureList.append([piece, (r, c), (temp_r, temp_c), [(enemy_r, enemy_c)]])
 
             # Leaper capture
             if enemy == (7 - track):
                 temp_r = r + k[0] + k[0]
                 temp_c = c + k[1] + k[1]
                 if temp_r in range(8) and temp_c in range(8) and board[temp_r][temp_c] == 0:
-                    captureList.append([piece, (r, c), (temp_r, temp_c), (r + k[0], c + k[1])])
+                    captureList.append([piece, (r, c), (temp_r, temp_c), [(r + k[0], c + k[1])]])
 
 
     other_dir = [k for k in movedirection if k not in captureMoves]
@@ -585,7 +563,7 @@ def imitatorMoves(board, r, c, rk, ck, piece, track):
         # Leaper capture
         if temp_r in range(8) and temp_c in range(8) and board[temp_r][temp_c] == (7 - track):
             if temp_r + k[0] in range(8) and temp_c + k[1] in range(8) and board[temp_r + k[0]][temp_c + k[1]] == 0:
-                captureList.append([piece, (r, c), (temp_r + k[0], temp_c + k[1]), (temp_r, temp_c)])
+                captureList.append([piece, (r, c), (temp_r + k[0], temp_c + k[1]), [(temp_r, temp_c)]])
 
 
 def imitatorDEval(board, r, c, rk, ck, track, dir):
@@ -617,7 +595,7 @@ def move(board, r, c, k, item):
         movesList.append([item, (r, c), (temp_r, temp_c)])
         temp_r += k[0]
         temp_c += k[1]
-    if temp_r in range(8) and temp_c in range(8):
+    if (temp_r - k[0]) in range(8) and (temp_c - k[1]) in range(8):
         return [temp_r - k[0], temp_c - k[1]]
     else:
         return None
@@ -667,6 +645,10 @@ def kingCheckAttack(board, r, c, track):
 def kingAttackMove(board, r, c, piece, track):
     movedirection = [[0, 1], [-1, 0], [0, -1], [1, 0], [-1, 1], [-1, -1], [1, -1], [1, 1]]
 
+    frozen = FREEZERcheck(board, track)
+    if piece in frozen:
+        return None
+
     for k in movedirection:
         temp_r = r + k[0]
         temp_c = c + k[1]
@@ -682,6 +664,8 @@ def kingAttackMove(board, r, c, piece, track):
 def kingMinionMove(board, r, c, KK, track):
     movedirection = [[0, 1], [-1, 0], [0, -1], [1, 0]]
     closures = []
+    frozen = FREEZERcheck(board, track)
+
     for i in range(3):
         temp_r = r + (KK[0] * (i + 1))
         temp_c = c + (KK[1] * (i + 1))
@@ -692,9 +676,45 @@ def kingMinionMove(board, r, c, KK, track):
         for i in range(8):
             for j in range(8):
                 piece = board[i][j]
-                if piece in friendly and piece != 12+track:  # all my pieces except king
+                if piece in friendly and piece != 12+track and piece not in frozen:  # all my pieces except king
                     move = tryMove(board, i, j, closures, piece, track)
                     if move: return move
+
+
+def FREEZERcheck(board, track):
+    frozenPieces = []
+    for i in range(8):
+        for j in range(8):
+            item = board[i][j]
+            if item == (15 - track):
+                # the enemy freezer; map all your frozen pieces
+                movedirection = [[0, 1], [-1, 0], [0, -1], [1, 0], [-1, 1], [-1, -1], [1, -1], [1, 1]]
+                for k in movedirection:
+                    if i + k[0] in range(8) and j + k[1] in range(8):
+                        if board[i + k[0]][j + k[1]] in friendly:
+                            frozenPieces.append(board[i + k[0]][j + k[1]])
+
+            if item == (14 + track):
+                # My freezer to check whether it has an imitator next to it
+                movedirection = [[0, 1], [-1, 0], [0, -1], [1, 0], [-1, 1], [-1, -1], [1, -1], [1, 1]]
+                Freezerfreeze = False
+                imiR = 0
+                imiC = 0
+
+                for k in movedirection:
+                    if i + k[0] in range(8) and j + k[1] in range(8):
+                        # found freezer
+                        if board[i + k[0]][j + k[1]] == (9 - track):
+                            Freezerfreeze = True
+                            imiR = i + k[0]
+                            imiC = j + k[1]
+
+                if Freezerfreeze:
+                    for k in movedirection:
+                        if imiR + k[0] in range(8) and imiC + k[1] in range(8):
+                            if board[imiR + k[0]][imiC + k[1]] in friendly:
+                                frozenPieces.append(board[imiR + k[0]][imiC + k[1]])
+        return frozenPieces
 
 
 def tryMove(board, r, c, possibilities, piece, track):
@@ -871,20 +891,22 @@ def pincerKill(board, k):
         # checks in a direction. Loops through blank spaces, checks if it's an opponent. If true, checks if our
         # our piece exists right after.
         # checking for blank spaces
-        while (t[0] in range(0, 8) and t[1] in range(0, 8) and board[t[0]][t[1]] == 0):
+        t[0] += s[0]
+        t[1] += s[1]
+        while t[0] in range(0, 8) and t[1] in range(0, 8) and board[t[0]][t[1]] == 0:
             t[0] += s[0]
             t[1] += s[1]
+            # # avoiding an index out of bounds exception
+            # if t[0] == 8:
+            #     t[0] -= 1
+            # elif t[0] == -1:
+            #     t[0] += 1
+            # elif t[1] == 8:
+            #     t[1] -= 1
+            # elif t[1] == -1:
+            #     t[1] += 1
 
-            # avoiding an index out of bounds exception
-            if t[0] == 8:
-                t[0] -= 1
-            elif t[0] == -1:
-                t[0] += 1
-            elif t[1] == 8:
-                t[1] -= 1
-            elif t[1] == -1:
-                t[1] += 1
-
+        if t[0] in range(8) and t[1] in range(8):
             if board[t[0]][t[1]] in opponentPieces:
                 t[0] += s[0]
                 t[1] += s[1]
