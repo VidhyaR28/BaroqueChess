@@ -27,5 +27,7 @@ F L I W K I L C
 
 new = BC_state(i)
 
+
+
 k = staticEval(new)
 print(k)

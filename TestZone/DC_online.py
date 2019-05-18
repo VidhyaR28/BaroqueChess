@@ -10,6 +10,7 @@ import BC_state_etc as BC
 import heapq
 import random
 import time
+import math
 
 """
 BLACK_PINCER      = 2
@@ -42,8 +43,12 @@ global ENDTIME
 CODE_TO_INIT = {0: '-', 2: 'p', 3: 'P', 4: 'c', 5: 'C', 6: 'l', 7: 'L', 8: 'i', 9: 'I',
                 10: 'w', 11: 'W', 12: 'k', 13: 'K', 14: 'f', 15: 'F'}
 
-pieceValue = {0: 0, 2: -100, 3: 100, 4: -500, 5: 500, 6: 800, 7: -800, 8: -1000, 9: 1000, 10: -1200,
-              11: 1200, 12: 10000, 13: -10000, 14: -1300, 15: 1300}
+pieceValue = {0: 0, 2: -900, 3: 900, 4: -1000, 5: 1000, 6: 1100, 7: -1100, 8: -1200, 9: 1200, 10: -1300,
+              11: 1300, 12: 10000, 13: -10000, 14: -1400, 15: 1400}
+# pieceValue = {0: 0, 2: -1000, 3: 1000, 4: -1100, 5: 1100, 6: 1000, 7: -1000, 8: -1000, 9: 1000, 10: -1000,
+#               11: 1000, 12: 10000, 13: -10000, 14: -1000, 15: 1000}
+
+
 
 WHITE = 1
 BLACK = 0
@@ -65,7 +70,7 @@ def parameterized_minimax(currentState, alphaBeta= True, ply=3, useBasicStaticEv
     numberEvals = 0
     cutoff = 0
     # print("Param minimax")
-    chosen = miniMax(currentState, ply, -100000, 100000, useBasicStaticEval, alphaBeta) #, 0.9*inputtime)
+    chosen = miniMax(currentState, ply, -math.inf, math.inf, useBasicStaticEval, alphaBeta) #, 0.9*inputtime)
     # [piece, (r,c), (temp_r,temp_c)] is the format for chosenMove
     chosenMove = chosen[1]
     dict = {'CURRENT_STATE_STATIC_VAL': chosen[0], 'N_STATES_EXPANDED': statesExpanded, 'N_STATIC_EVALS': numberEvals,
@@ -104,7 +109,7 @@ def miniMax(state, depth, a, b, useBasicStaticEval, alphaBeta):
     # successors produce a list of moves and not states
     track = state.whose_move
     if track == 1:
-        val = -100000
+        val = -1 * math.inf
         Bstate = None  # [moves]
         for child in moves:
             statesExpanded += 1
@@ -119,7 +124,7 @@ def miniMax(state, depth, a, b, useBasicStaticEval, alphaBeta):
                 a = val
         return [val, Bstate]
     else:
-        val = 1000000
+        val = math.inf
         Bstate = None
         for child in moves:
             statesExpanded += 1
@@ -921,7 +926,7 @@ def freezerKill(board, k):
             #     threatworth = pieceValue.get(board[t[0]][t[1]])
             #     threatcount += 1
     # the more things we freeze, the better off we are
-    return (networth * count) / 4
+    return (networth * count)/2
 
 
 def kingCheck(board, k):
@@ -940,7 +945,7 @@ def kingCheck(board, k):
     for s in movedirection:
         t = [k[0], k[1]]
 
-        for loop in range(1, 3):
+        for loop in range(1, 2):
             # print("Loop: ", loop)
 
             t[0] += s[0] * loop
@@ -954,19 +959,21 @@ def kingCheck(board, k):
                 # print("Same Side: ", sameSide, "King: ",board[k[0]][k[1]], "Other: ", board[t[0]][t[1]])
                 if t[0] in range(0, 8) and t[1] in range(0, 8) and board[t[0]][t[1]] != 0:
                     if pieceValue.get(board[k[0]][k[1]]) < 0 and sameSide:
-                        count += 800
+                        count += 100
                     else:
-                        count -= 800
+                        count -= 100
                     # print("Count: ", count)
                 if t[0] in range(0, 8) and t[1] in range(0, 8) and board[t[0]][t[1]] == 0 and loop == 1:
                     temp = [0, 0]
-                    temp[0] = k[0] + s[0]
-                    temp[1] = k[1] + s[1]
+                    temp[0] = k[0]# + s[0]
+                    temp[1] = k[1]# + s[1]
+                    temp[0] -= s[0]
+                    temp[1] -= s[1]
                     while (temp[0] in range(0, 8) and temp[1] in range(0, 8)):
-                        temp[0] -= s[0]
-                        temp[1] -= s[1]
                         if (board[temp[0]][temp[1]] in [6, 7] and board[temp[0]][temp[1]] in opponentPieces):
                             count -= pieceValue.get(board[k[0]][k[1]])
+                        temp[0] -= s[0]
+                        temp[1] -= s[1]
 
 
     # find opponenent king(r, c), find opponent coordinator (r, c), get their Point of intersection, see if we're there
