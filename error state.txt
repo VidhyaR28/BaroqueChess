@@ -1,0 +1,50 @@
+- - i k - - - - 
+- - p p - - p - 
+- p - - - - - - 
+- - l - f - - - 
+- - - F i - - - 
+- p I p - P - - 
+P - - - P P - - 
+- - - - K - I - 
+
+
+White moves: 
+- - i k - - - - 
+- - p p - - p - 
+- p - - - - - - 
+- - l - f - - - 
+- - I F i - - - 
+- p - p - P - - 
+P - - - P P - - 
+- - - - K - I - 
+
+
+Black didn't return. 
+Error: 
+Time used in makeMove: 0.0533 seconds out of  2
+Exception in thread Thread-60:
+No move returned by BLACK.
+Traceback (most recent call last):
+Game over.
+  File "C:/Users/Admin/PycharmProjects/BaroqueChess/TestZone/BaroqueGameMaster.py", line 197, in run
+Congratulations to the winner: WHITE
+    self.result = func(*args, **kwargs)
+  File "C:\Users\Admin\PycharmProjects\BaroqueChess\TestZone\DC_online.py", line 197, in makeMove
+    parameterized_minimax(currentState, True, IDDFStrack, False, False)
+  File "C:\Users\Admin\PycharmProjects\BaroqueChess\TestZone\DC_online.py", line 73, in parameterized_minimax
+    chosen = miniMax(currentState, ply, -math.inf, math.inf, useBasicStaticEval, alphaBeta) #, 0.9*inputtime)
+  File "C:\Users\Admin\PycharmProjects\BaroqueChess\TestZone\DC_online.py", line 131, in miniMax
+    function = miniMax(statify(state, child, track), depth - 1, a, b, useBasicStaticEval, alphaBeta)
+  File "C:\Users\Admin\PycharmProjects\BaroqueChess\TestZone\DC_online.py", line 246, in statify
+    r = m[1][0]
+TypeError: 'NoneType' object is not subscriptable
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\Admin\AppData\Local\Programs\Python\Python37-32\lib\threading.py", line 917, in _bootstrap_inner
+    self.run()
+  File "C:/Users/Admin/PycharmProjects/BaroqueChess/TestZone/BaroqueGameMaster.py", line 199, in run
+    print("Seems there was an exception during play by "+CURRENT_PLAYER+":\n"+str(e))
+TypeError: can only concatenate str (not "int") to str
+
