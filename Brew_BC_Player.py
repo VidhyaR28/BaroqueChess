@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """
-Diluted Coffee is a Baroque Chess Player made by Vidhya Rajendran and Krishna Teja
+Brew is a Baroque Chess Player made by Vidhya Rajendran and Krishna Teja
 
 """
 
-import BC_state_etc as BC
+import new_BC_state_etc as BC
 import heapq
 import random
 import time
