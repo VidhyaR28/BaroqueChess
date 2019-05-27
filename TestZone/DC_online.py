@@ -714,7 +714,7 @@ def FREEZERcheck(board, track):
                         if imiR + k[0] in range(8) and imiC + k[1] in range(8):
                             if board[imiR + k[0]][imiC + k[1]] in friendly:
                                 frozenPieces.append(board[imiR + k[0]][imiC + k[1]])
-        return frozenPieces
+    return frozenPieces
 
 
 def tryMove(board, r, c, possibilities, piece, track):
@@ -906,7 +906,7 @@ def pincerKill(board, k):
             # elif t[1] == -1:
             #     t[1] += 1
 
-        if t[0] in range(8) and t[1] in range(8):
+        if t[0] in range(0, 8) and t[1] in range(0, 8):
             if board[t[0]][t[1]] in opponentPieces:
                 t[0] += s[0]
                 t[1] += s[1]
