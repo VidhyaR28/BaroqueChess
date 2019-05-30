@@ -11,6 +11,9 @@ import heapq
 import random
 import time
 import math
+import numpy
+
+
 
 """
 BLACK_PINCER      = 2
@@ -40,6 +43,12 @@ global inputtime
 global IDDFStrack
 global ENDTIME
 
+# Zobrist stuff
+global ZOBTAB
+global ZOBHASH
+
+
+
 CODE_TO_INIT = {0: '-', 2: 'p', 3: 'P', 4: 'c', 5: 'C', 6: 'l', 7: 'L', 8: 'i', 9: 'I',
                 10: 'w', 11: 'W', 12: 'k', 13: 'K', 14: 'f', 15: 'F'}
 
@@ -59,7 +68,7 @@ global cutoff
 global chosenMove
 
 
-def parameterized_minimax(currentState, alphaBeta= True, ply=3, useBasicStaticEval = False, useZobristHashing=False):
+def parameterized_minimax(currentState, alphaBeta= True, ply = 3, useBasicStaticEval = False, useZobristHashing= True):
     global statesExpanded
     global numberEvals
     global cutoff
@@ -70,7 +79,7 @@ def parameterized_minimax(currentState, alphaBeta= True, ply=3, useBasicStaticEv
     numberEvals = 0
     cutoff = 0
     # print("Param minimax")
-    chosen = miniMax(currentState, ply, -math.inf, math.inf, useBasicStaticEval, alphaBeta) #, 0.9*inputtime)
+    chosen = miniMax(currentState, ply, -math.inf, math.inf, useBasicStaticEval, alphaBeta, useZobristHashing) #, 0.9*inputtime)
     # [piece, (r,c), (temp_r,temp_c)] is the format for chosenMove
     chosenMove = chosen[1]
     dict = {'CURRENT_STATE_STATIC_VAL': chosen[0], 'N_STATES_EXPANDED': statesExpanded, 'N_STATIC_EVALS': numberEvals,
@@ -80,20 +89,32 @@ def parameterized_minimax(currentState, alphaBeta= True, ply=3, useBasicStaticEv
 
 # the input is just a [state]
 # the outout is formated as [staticValue, move]
-def miniMax(state, depth, a, b, useBasicStaticEval, alphaBeta):
+def miniMax(state, depth, a, b, useBasicStaticEval, alphaBeta, useZobristHashing):
     global inputtime
     global iterDepthTrack
     global statesExpanded
     global numberEvals
     global cutoff
     global IDDFStrack
+    global ZOBHASH
     if useBasicStaticEval: staticfunction = basicStaticEval
     else: staticfunction = staticEval
     global ENDTIME
 
     if depth == 0 or (ENDTIME - time.time() < 0.3):
         numberEvals += 1
-        static = staticfunction(state)
+
+        if (useZobristHashing):
+            hashvalue = ZobristHash(state.board)
+            if ZOBHASH.get(hashvalue, -1) != -1:
+                # do something
+                static = ZOBHASH.get(hashvalue)
+            else:
+                static = staticEval(state)
+                ZOBHASH.update({hashvalue : static})
+        else:
+            static = staticEval(state)
+
         return [static, None]
 
     moves = successors(state)
@@ -138,6 +159,64 @@ def miniMax(state, depth, a, b, useBasicStaticEval, alphaBeta):
             if val < b:
                 b = val
         return [val, Bstate]
+
+
+
+
+def Zobrist():
+    # We need to loop through every item on board, give every piece a randomly generated value,
+    # XOR stuff? and then, get a "has" . This hash should point to a dictionary, K (Zob hash) -> Value (tuple of data)
+    # UPDATE MINIMAX WITH ZOBRIST STUFF
+    global ZOBTAB
+
+    """
+    constant indices
+    white_pawn := 1
+    white_rook := 2
+    # etc.
+    black_king := 12
+    function init_zobrist():
+    # fill a table of random numbers/bitstrings
+    table := a 2-d array of size 64×12
+       for i from 1 to 64:  # loop over the board, represented as a linear array
+           for j from 1 to 12:      # loop over the pieces
+               table[i][j] = random_bitstring()
+    function hash(board):
+       h := 0
+       for i from 1 to 64:      # loop over the board positions
+           if board[i] != empty:
+               j := the piece at board[i], as listed in the constant indices, above
+               h := h XOR table[i][j]
+       return h
+    """
+    # init = [[4, 6, 8, 10, 12, 8, 6, 14], [2, 2, 2, 2, 2, 2, 2, 2], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0],
+    #         [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [3, 3, 3, 3, 3, 3, 3, 3], [15, 7, 9, 11, 13, 9, 7, 5]]
+    for i in range (0, 65):
+        for j in range (0, 13):
+            # insert a random value
+            ZOBTAB[i][j] = random.getrandbits(24)
+    return
+
+def ZobristHash(board):
+    """
+    Calculates the hash value of a particular states and returns it.
+    Store: Best move, alpha, beta, static eval
+
+    :param state:
+    :return:
+    """
+    global ZOBTAB
+    tabulartrack = 0
+
+    h = 0
+
+    for i in range(0, 8):
+        for j in range(0, 8):
+            if board[i][j] != 0:
+                val = ZOBTAB[tabulartrack][board[i][j]]
+                h = h^val
+            tabulartrack += 1
+    return h
 
 
 def makeMove(currentState, currentRemark, timelimit=10):
@@ -213,18 +292,6 @@ def makeMove(currentState, currentRemark, timelimit=10):
 
 MAP_ROW = {0: 'a', 1: 'b', 2: 'c', 3: 'd', 4: 'e', 5: 'f', 6: 'g', 7: 'h'}
 MAP_COL = {0: '8', 1: '7', 2: '6', 3: '5', 4: '4', 5: '3', 6: '2', 7: '1'}
-
-
-# [[move, newState], newRemark] and moves as (fr, new_fr) where fr is e2, e is column and 2 is row
-# def stringify(m):
-#     # [piece, (r,c), (temp_r,temp_c)] as m - one piece of movesList
-#     r = MAP_COL[m[1][0]] #number str
-#     c = MAP_ROW[m[1][1]] #alphabet str
-#     fromStr = c+r
-#     rf = MAP_COL[m[2][0]]
-#     cf = MAP_ROW[m[2][1]]
-#     toStr = cf+rf
-#     return (fromStr,toStr) #formatted as (fr, new_fr)
 
 
 def stringify(m):
@@ -739,7 +806,6 @@ def tryMove(board, r, c, possibilities, piece, track):
 def nickname():
     return "Brew"
 
-
 def introduce():
     return "I'm Brew, and I am an aspiring Baroque Chess player."
 
@@ -751,18 +817,20 @@ def prepare(player2Nickname, playWhite=False):
     global moveCount
     global chosenMove
     global inputtime
-    # captureList = []
-    # movesList = []
+    global ZOBTAB
+    global ZOBHASH
+
     moveCount = 0
-    # chosenMove = [0, 0, 0, 0]
 
-
-
+    ZOBTAB = numpy.zeros((65, 13))
+    ZOBHASH = {}
 
     if (playWhite == True):
         colourtrack = 1
     else:
         colourtrack = 0
+    Zobrist()
+
     print("Hey ", player2Nickname,"! *cracks knuckles* Let's get started.")
 
 
@@ -798,9 +866,8 @@ def remark():
                            "Here you go!", "Don't "]
     return random.choice(remarks)
 
+
 def staticEval(state):
-
-
     returnval = 0
     board = state.board
 
@@ -931,8 +998,6 @@ def freezerKill(board, k):
 
     count = 0
     networth = 0
-    # threatworth = 0
-    # threatcount = 0
 
     for s in movedirection:
         t = [k[0], k[1]]
@@ -940,13 +1005,8 @@ def freezerKill(board, k):
         t[1] += s[1]
         if (t[0] in range(0, 8) and t[1] in range(0, 8) and board[t[0]][t[1]] != 0):
             if board[t[0]][t[1]] in opponentPieces:
-                # do something
                 networth += pieceValue.get(board[t[0]][t[1]])
                 count += 1
-            # else:
-            #
-            #     threatworth = pieceValue.get(board[t[0]][t[1]])
-            #     threatcount += 1
     # the more things we freeze, the better off we are
     return (networth * count)/2
 
@@ -969,7 +1029,6 @@ def kingCheck(board, k):
 
         for loop in range(1, 2):
             # print("Loop: ", loop)
-
             t[0] += s[0] * loop
             t[1] += s[1] * loop
 
@@ -987,8 +1046,8 @@ def kingCheck(board, k):
                     # print("Count: ", count)
                 if t[0] in range(0, 8) and t[1] in range(0, 8) and board[t[0]][t[1]] == 0 and loop == 1:
                     temp = [0, 0]
-                    temp[0] = k[0]# + s[0]
-                    temp[1] = k[1]# + s[1]
+                    temp[0] = k[0] # + s[0]
+                    temp[1] = k[1] # + s[1]
                     temp[0] -= s[0]
                     temp[1] -= s[1]
                     while (temp[0] in range(0, 8) and temp[1] in range(0, 8)):
@@ -996,7 +1055,6 @@ def kingCheck(board, k):
                             count -= pieceValue.get(board[k[0]][k[1]])
                         temp[0] -= s[0]
                         temp[1] -= s[1]
-
 
     # find opponenent king(r, c), find opponent coordinator (r, c), get their Point of intersection, see if we're there
     opp = []
@@ -1012,9 +1070,6 @@ def kingCheck(board, k):
         t2 = opp.__getitem__(1)
         if (board[t1[0]][t2[1]] == board[k[0]][k[1]] or board[t1[1]][t2[0]] == board[k[0]][k[1]]):
             count -= pieceValue.get(board[k[0]][k[1]])
-
-
-
     # print("Final count ", count)
     return count
 
@@ -1035,7 +1090,6 @@ def leaperKill(board, k):
 
     for s in movedirection:
         t = [k[0], k[1]]
-
         # checks in a direction. Loops through blank spaces, checks if it's an opponent. If true, checks if our
         # our piece exists right after.
         # checking for blank spaces

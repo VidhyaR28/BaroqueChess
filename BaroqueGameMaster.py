@@ -9,7 +9,7 @@ VERSION = '1.0-BETA'
 
 import sys
 import BC_checker   # API for accessing web-based move validation.
-TIME_PER_MOVE = 2   # Default time limit is one second.
+TIME_PER_MOVE = 3   # Default time limit is one second.
 TURN_LIMIT = 100      # Good for testing.
 #TURN_LIMIT = 100 # Terminates runaway games.
 

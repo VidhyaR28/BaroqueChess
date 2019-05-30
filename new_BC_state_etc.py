@@ -129,7 +129,9 @@ class BC_state:
       
 def test_starting_board():
     init_state = BC_state(INITIAL, WHITE)
-    print(init_state)
+
+
+    print(INITIAL)
 
 
 if __name__ == "__main__":
