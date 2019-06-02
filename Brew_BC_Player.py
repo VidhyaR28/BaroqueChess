@@ -79,7 +79,7 @@ def parameterized_minimax(currentState, alphaBeta= True, ply = 3, useBasicStatic
     numberEvals = 0
     cutoff = 0
     # print("Param minimax")
-    chosen = miniMax(currentState, ply, -math.inf, math.inf, useBasicStaticEval, alphaBeta, useZobristHashing) #, 0.9*inputtime)
+    chosen = miniMax(currentState, ply, -math.inf, math.inf) #, 0.9*inputtime)
     # [piece, (r,c), (temp_r,temp_c)] is the format for chosenMove
     chosenMove = chosen[1]
     dict = {'CURRENT_STATE_STATIC_VAL': chosen[0], 'N_STATES_EXPANDED': statesExpanded, 'N_STATIC_EVALS': numberEvals,
@@ -89,7 +89,7 @@ def parameterized_minimax(currentState, alphaBeta= True, ply = 3, useBasicStatic
 
 # the input is just a [state]
 # the outout is formated as [staticValue, move]
-def miniMax(state, depth, a, b, useBasicStaticEval, alphaBeta, useZobristHashing):
+def miniMax(state, depth, a, b):
     global inputtime
     global iterDepthTrack
     global statesExpanded
@@ -97,34 +97,27 @@ def miniMax(state, depth, a, b, useBasicStaticEval, alphaBeta, useZobristHashing
     global cutoff
     global IDDFStrack
     global ZOBHASH
-    if useBasicStaticEval: staticfunction = basicStaticEval
-    else: staticfunction = staticEval
     global ENDTIME
+    global chosenMove
 
     if depth == 0 or (ENDTIME - time.time() < 0.3):
         numberEvals += 1
 
-        if (useZobristHashing):
-            hashvalue = ZobristHash(state.board)
-            if ZOBHASH.get(hashvalue, -1) != -1:
-                # do something
-                static = ZOBHASH.get(hashvalue)
-            else:
-                static = staticEval(state)
-                ZOBHASH.update({hashvalue : static})
+        hashvalue = ZobristHash(state.board)
+        if ZOBHASH.get(hashvalue, -1) != -1:
+            # do something
+            static = ZOBHASH.get(hashvalue)
         else:
             static = staticEval(state)
+            ZOBHASH.update({hashvalue : static})
+
 
         return [static, None]
 
     moves = successors(state)
 
-    # Expand state optimisation, remove if causing error
-    # some global tracker of depth
     # print("Depth value: ", IDDFStrack)
     if IDDFStrack > 1:
-        # can't use normal depth which we're sending as an input because it's a recursive call and depth changes.
-        # moves.remove(chosenMove)
         moves.insert(0, chosenMove)
 
     # successors produce a list of moves and not states
@@ -134,30 +127,38 @@ def miniMax(state, depth, a, b, useBasicStaticEval, alphaBeta, useZobristHashing
         Bstate = None  # [moves]
         for child in moves:
             statesExpanded += 1
-            function = miniMax(statify(state, child, track), depth - 1, a, b, useBasicStaticEval, alphaBeta, useZobristHashing)
+            function = miniMax(statify(state, child, track), depth - 1, a, b)
             if function[0] > val:
                 Bstate = child
                 val = function[0]
-            if val > b and alphaBeta:
+            if val > b:
                 cutoff += 1
                 break
             if val > a:
                 a = val
+
+        if Bstate == None:
+            Bstate = moves[0]
+            val = staticEval(statify(state,Bstate,track))
         return [val, Bstate]
     else:
         val = math.inf
         Bstate = None
         for child in moves:
             statesExpanded += 1
-            function = miniMax(statify(state, child, track), depth - 1, a, b, useBasicStaticEval, alphaBeta, useZobristHashing)
+            function = miniMax(statify(state, child, track), depth - 1, a, b)
             if function[0] < val:
                 Bstate = child
                 val = function[0]
-            if val < a and alphaBeta:
+            if val < a:
                 cutoff += 1
                 break
             if val < b:
                 b = val
+
+        if Bstate == None:
+            Bstate = moves[0]
+            val = staticEval(statify(state,Bstate,track))
         return [val, Bstate]
 
 
