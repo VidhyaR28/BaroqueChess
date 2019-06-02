@@ -134,7 +134,7 @@ def miniMax(state, depth, a, b, useBasicStaticEval, alphaBeta, useZobristHashing
         Bstate = None  # [moves]
         for child in moves:
             statesExpanded += 1
-            function = miniMax(statify(state, child, track), depth - 1, a, b, useBasicStaticEval, alphaBeta)
+            function = miniMax(statify(state, child, track), depth - 1, a, b, useBasicStaticEval, alphaBeta, useZobristHashing)
             if function[0] > val:
                 Bstate = child
                 val = function[0]
@@ -149,7 +149,7 @@ def miniMax(state, depth, a, b, useBasicStaticEval, alphaBeta, useZobristHashing
         Bstate = None
         for child in moves:
             statesExpanded += 1
-            function = miniMax(statify(state, child, track), depth - 1, a, b, useBasicStaticEval, alphaBeta)
+            function = miniMax(statify(state, child, track), depth - 1, a, b, useBasicStaticEval, alphaBeta, useZobristHashing)
             if function[0] < val:
                 Bstate = child
                 val = function[0]
@@ -272,7 +272,7 @@ def makeMove(currentState, currentRemark, timelimit=10):
     global ENDTIME
     ENDTIME = start_time + timelimit
     while (ENDTIME - time.time() > 0.3):
-        # print("IDDFS: ", IDDFStrack)
+        print("IDDFS: ", IDDFStrack)
         parameterized_minimax(currentState, True, IDDFStrack, False, False)
         IDDFStrack += 1
         # where is the depth increasing???
