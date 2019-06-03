@@ -43,6 +43,15 @@ global inputtime
 global IDDFStrack
 global ENDTIME
 
+
+# NEW STUFF START___________________________________________________________________________________
+global W
+global episodes
+episodes = 0
+
+# NEW STUFF END
+
+
 # Zobrist stuff
 global ZOBTAB
 global ZOBHASH
@@ -53,11 +62,7 @@ CODE_TO_INIT = {0: '-', 2: 'p', 3: 'P', 4: 'c', 5: 'C', 6: 'l', 7: 'L', 8: 'i', 
                 10: 'w', 11: 'W', 12: 'k', 13: 'K', 14: 'f', 15: 'F'}
 
 pieceValue = {0: 0, 2: -900, 3: 900, 4: -1000, 5: 1000, 6: -1100, 7: 1100, 8: -1200, 9: 1200, 10: -1300,
-              11: 1300, 12: 10000, 13: -10000, 14: -1400, 15: 1400}
-# pieceValue = {0: 0, 2: -1000, 3: 1000, 4: -1100, 5: 1100, 6: 1000, 7: -1000, 8: -1000, 9: 1000, 10: -1000,
-#               11: 1000, 12: 10000, 13: -10000, 14: -1000, 15: 1000}
-
-
+              11: 1300, 12: 100000, 13: -100000, 14: -1400, 15: 1400}
 
 WHITE = 1
 BLACK = 0
@@ -79,7 +84,7 @@ def parameterized_minimax(currentState, alphaBeta= True, ply = 3, useBasicStatic
     numberEvals = 0
     cutoff = 0
     # print("Param minimax")
-    chosen = miniMax(currentState, ply, -math.inf, math.inf) #, 0.9*inputtime)
+    chosen = miniMax(currentState, ply, -math.inf, math.inf, 0) #, 0.9*inputtime)
     # [piece, (r,c), (temp_r,temp_c)] is the format for chosenMove
     chosenMove = chosen[1]
     dict = {'CURRENT_STATE_STATIC_VAL': chosen[0], 'N_STATES_EXPANDED': statesExpanded, 'N_STATIC_EVALS': numberEvals,
@@ -87,9 +92,8 @@ def parameterized_minimax(currentState, alphaBeta= True, ply = 3, useBasicStatic
     return dict
 
 
-# the input is just a [state]
-# the outout is formated as [staticValue, move]
-def miniMax(state, depth, a, b):
+# NEW STUFF START________________________________________________________________________________________
+def miniMax(state, depth, a, b, power):
     global inputtime
     global iterDepthTrack
     global statesExpanded
@@ -99,35 +103,35 @@ def miniMax(state, depth, a, b):
     global ZOBHASH
     global ENDTIME
     global chosenMove
+    global W
+    global check
+    global episodes
+    ALPHA = 1 / (episodes + 1)
+    GAMMA = 0.9
 
     if depth == 0 or (ENDTIME - time.time() < 0.3):
         numberEvals += 1
-
-        hashvalue = ZobristHash(state.board)
-        if ZOBHASH.get(hashvalue, -1) != -1:
-            # do something
-            static = ZOBHASH.get(hashvalue)
-        else:
-            static = staticEval(state)
-            ZOBHASH.update({hashvalue : static})
-
-
-        return [static, None]
+        value = featureRL(state)
+        return [value, None]
 
 
     moves = successors(state)
-    # print("Depth value: ", IDDFStrack)
+
     if IDDFStrack > 1:
         moves.insert(0, chosenMove)
 
-    # successors produce a list of moves and not states
     track = state.whose_move
-    if track == 1:
-        val = -1 * math.inf
-        Bstate = None  # [moves]
-        for child in moves:
-            statesExpanded += 1
-            function = miniMax(statify(state, child, track), depth - 1, a, b)
+    val = None
+    Bstate = None  # [moves]
+    multiplier = 0
+
+    for child in moves:
+        statesExpanded += 1
+        function = miniMax(statify(state, child, track), depth - 1, a, b, power+1)
+
+        if track == 1:
+            val = -1 * math.inf
+            multiplier = 1
             if function[0] > val:
                 Bstate = child
                 val = function[0]
@@ -136,17 +140,9 @@ def miniMax(state, depth, a, b):
                 break
             if val > a:
                 a = val
-
-        if Bstate == None:
-            Bstate = moves[0]
-            val = staticEval(statify(state,Bstate,track))
-        return [val, Bstate]
-    else:
-        val = math.inf
-        Bstate = None
-        for child in moves:
-            statesExpanded += 1
-            function = miniMax(statify(state, child, track), depth - 1, a, b)
+        else:
+            val = math.inf
+            multiplier = -1
             if function[0] < val:
                 Bstate = child
                 val = function[0]
@@ -156,12 +152,23 @@ def miniMax(state, depth, a, b):
             if val < b:
                 b = val
 
-        if Bstate == None:
-            Bstate = moves[0]
-            val = staticEval(statify(state,Bstate,track))
-        return [val, Bstate]
+    diff = ( multiplier * reward(state) + (GAMMA**power) * val ) - featureRL(state)
+    for i in range(6):
+        W[i] = W[i] + ALPHA * diff * check[i]
+
+    return [val, Bstate]
 
 
+def reward(state):
+    # material value
+    board = state.board
+    count = 0
+    for i in range(8):
+        for j in range(8):
+            count += pieceValue[board[i][j]]
+    return count
+
+# NEW STUFF END
 
 
 def Zobrist():
@@ -812,7 +819,8 @@ def introduce():
     return "I'm Brew, and I am an aspiring Baroque Chess player."
 
 
-def prepare(player2Nickname, playWhite=False):
+# NEW STUFF START________________________________________________________________________________________
+def prepare(player2Nickname):
     global colourtrack
     global captureList
     global movesList
@@ -821,19 +829,21 @@ def prepare(player2Nickname, playWhite=False):
     global inputtime
     global ZOBTAB
     global ZOBHASH
-
+    global W
+    global check
+    global episodes
+    episodes += 1
     moveCount = 0
 
     ZOBTAB = numpy.zeros((65, 13))
     ZOBHASH = {}
-
-    if (playWhite == True):
-        colourtrack = 1
-    else:
-        colourtrack = 0
+    W =[1, 1, 1, 1, 1, 1]
+    check = [0, 0, 0, 0, 0, 0]
     Zobrist()
 
     print("Hey ", player2Nickname,"! *cracks knuckles* Let's get started.")
+
+# NEW STUFF END
 
 
 def basicStaticEval(state):
@@ -869,39 +879,36 @@ def remark():
     return random.choice(remarks)
 
 
-def staticEval(state):
+# NEW STUFF START________________________________________________________________________________________
+def featureRL(state):
+    global W
+    global check
     returnval = 0
     board = state.board
 
     for i in range(0, 8):
         for j in range(0, 8):
-            # material balance
-
             if board[i][j] in [2, 3]: # pincer
-                check1 = pincerMobility(board, (i, j)) + pincerKill(board, (i, j))
-                # print("Pincer mobility + kill", check1)
-                returnval += check1
+                check[0] = W[0]*(pincerMobility(board, (i, j)) + pincerKill(board, (i, j)))
+                returnval += check[0]
             elif board[i][j] in [4, 5]: # Coordinator
-                check2 = coordinatorKill(board, (i, j))
-                # print("Coordinator Kill ", check2)
-                returnval += check2
+                check[1] = W[1]*coordinatorKill(board, (i, j))
+                returnval += check[1]
             elif board[i][j] in [6, 7]: # Leaper
-                check3 = leaperKill(board, (i, j))
-                # print("Leaper Kill: ", check3)
-                returnval += check3
+                check[2] = W[2]*leaperKill(board, (i, j))
+                returnval += check[2]
             elif board[i][j] in [10, 11]: # Withdrawer
-                check4 = withdrawerKill(board, (i, j))
-                returnval += check4
+                check[3] = W[3]*withdrawerKill(board, (i, j))
+                returnval += check[3]
             elif board[i][j] in [12, 13]: # King
-                check5 = kingCheck(board, (i, j))
-                # print("King Check: ", check5)
-                returnval += check5
+                check[4] = W[4]*kingCheck(board, (i, j))
+                returnval += check[4]
             elif board[i][j] in [14, 15]: # Freezer
-                check6 = freezerKill(board, (i, j)) /2
-                # print("Freezer Kill: ", check6)
-                returnval += check6
-
+                check[5] = W[5]*freezerKill(board, (i, j)) /2
+                returnval += check[5]
     return returnval
+
+# NEW STUFF END
 
 
 def pincerMobility(board, k):
@@ -916,8 +923,6 @@ def pincerMobility(board, k):
 
 
 def pincerKill(board, k):
-    # go north, south, east, west. Hit a block. Check if it's the other colour. If yes, go one step ahead and see if we
-    # have a piece there. If yes, more points.
     movedirection = [[1, 0], [-1, 0], [0, 1], [0, -1]]
 
     if board[k[0]][k[1]] in [2, 4, 6, 8, 10, 12, 14]:
@@ -930,9 +935,6 @@ def pincerKill(board, k):
     for s in movedirection:
         t = [k[0], k[1]]
 
-        # checks in a direction. Loops through blank spaces, checks if it's an opponent. If true, checks if our
-        # our piece exists right after.
-        # checking for blank spaces
         t[0] += s[0]
         t[1] += s[1]
         while t[0] in range(0, 8) and t[1] in range(0, 8) and board[t[0]][t[1]] == 0:
@@ -971,12 +973,10 @@ def freezerKill(board, k):
             if board[t[0]][t[1]] in opponentPieces:
                 networth += pieceValue.get(board[t[0]][t[1]])
                 count += 1
-    # the more things we freeze, the better off we are
     return (networth * count)/2
 
 
 def kingCheck(board, k):
-    # If king is around  a couple of different folks, it's good for us.
     movedirection = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [-1, 1], [1, -1]]
 
     if board[k[0]][k[1]] in [2, 4, 6, 8, 10, 12, 14]:
@@ -1016,7 +1016,6 @@ def kingCheck(board, k):
                         temp[0] -= s[0]
                         temp[1] -= s[1]
 
-    # find opponenent king(r, c), find opponent coordinator (r, c), get their Point of intersection, see if we're there
     opp = []
     for i in range(0, 8):
         for j in range(0, 8):
@@ -1034,8 +1033,6 @@ def kingCheck(board, k):
 
 
 def leaperKill(board, k):
-    # go north, south, east, west. Hit a block. Check if it's the other colour. If yes, go one step ahead and see if we
-    # have a piece there. If yes, more points.
     movedirection = [[1, 0], [-1, 0], [0, 1], [0, -1]]
 
     if board[k[0]][k[1]] in [2, 4, 6, 8, 10, 12, 14]:
@@ -1047,9 +1044,6 @@ def leaperKill(board, k):
 
     for s in movedirection:
         t = [k[0], k[1]]
-        # checks in a direction. Loops through blank spaces, checks if it's an opponent. If true, checks if our
-        # our piece exists right after.
-        # checking for blank spaces
         while (t[0] in range(0, 8) and t[1] in range(0, 8) and board[t[0]][t[1]] == 0):
             t[0] += s[0]
             t[1] += s[1]
@@ -1077,8 +1071,6 @@ def leaperKill(board, k):
 
 
 def withdrawerKill(board, k):
-    # if we have an item of opposite colour and on opposite side we have a blank, then we add value.
-    # board = state.board
     movedirection = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [-1, 1], [1, -1]]
 
     count = 0
